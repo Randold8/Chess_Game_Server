@@ -1,0 +1,53 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chess Board Setup Helper</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <link rel="stylesheet" href="/setup/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>Piece Selection</h2>
+            <h3>White Pieces</h3>
+            <div class="piece-buttons white">
+                <button data-piece="king" data-color="white">♔ King</button>
+                <button data-piece="queen" data-color="white">♕ Queen</button>
+                <button data-piece="rook" data-color="white">♖ Rook</button>
+                <button data-piece="bishop" data-color="white">♗ Bishop</button>
+                <button data-piece="knight" data-color="white">♘ Knight</button>
+                <button data-piece="pawn" data-color="white">♙ Pawn</button>
+                <button data-piece="jumper" data-color="white">⛀ Jumper</button>
+                <button data-piece="ogre" data-color="white">🧌 Ogre</button>
+            </div>
+
+            <h3>Black Pieces</h3>
+            <div class="piece-buttons black">
+                <button data-piece="king" data-color="black">♚ King</button>
+                <button data-piece="queen" data-color="black">♛ Queen</button>
+                <button data-piece="rook" data-color="black">♜ Rook</button>
+                <button data-piece="bishop" data-color="black">♝ Bishop</button>
+                <button data-piece="knight" data-color="black">♞ Knight</button>
+                <button data-piece="pawn" data-color="black">♟ Pawn</button>
+                <button data-piece="jumper" data-color="black">⛂ Jumper</button>
+                <button data-piece="ogre" data-color="black">👹 Ogre</button>
+            </div>
+
+            <div class="board-controls">
+                <button id="resetStandard">Reset to Standard</button>
+                <button id="clearBoard">Clear Board</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="canvas-container"></div>
+            <div class="code-output">
+                <h3>Generated Code</h3>
+                <pre><code id="setup-code"></code></pre>
+            </div>
+        </div>
+    </div>
+    <script src="/setup/sketch2.js"></script>
+</body>
+</html>

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Random Chess - Движок</title>
+    <link rel="stylesheet" href="/bible/styles.css" />
+    <link rel="stylesheet" href="/bible/engine.css" />
+  </head>
+  <body>
+    <nav class="sidenav">
+      <h3>Страницы</h3>
+      <a href="index.html">Главная</a>
+      <a href="engine.html" class="active">Движок</a>
+      <a href="design.html">Дизайн</a>
+      <a href="maps.html">Карты</a>
+      <a href="formulas.html">Формулы</a>
+
+      <h3>Разделы</h3>
+      <div class="nav-group">
+        <a href="#sketch" class="nav-header">sketch.js</a>
+        <div class="nav-subgroup">
+          <a href="#constants">Константы</a>
+          <a href="#tile-class">Класс Tile</a>
+          <a href="#graveyard-class">Класс Graveyard</a>
+          <a href="#board-class">Класс Board</a>
+          <a href="#setup">Настройка игры</a>
+        </div>
+      </div>
+      <div class="nav-group">
+        <a href="#pieces" class="nav-header">pieces.js</a>
+        <div class="nav-subgroup">
+          <a href="#piece-basic">Базовые методы Piece</a>
+          <div class="nav-subgroup-nested">
+            <a href="#piece-constructor">Конструктор</a>
+            <a href="#piece-properties">Свойства</a>
+            <a href="#piece-core-methods">Основные методы</a>
+          </div>
+          <a href="#piece-extended">Методы наследников</a>
+          <div class="nav-subgroup-nested">
+            <a href="#piece-valid-move">isValidMove</a>
+            <a href="#piece-valid-capture">isValidCapture</a>
+          </div>
+        </div>
+      </div>
+      <div class="nav-group">
+        <a href="#controls" class="nav-header">controls.js</a>
+        <div class="nav-subgroup">
+            <a href="#controller-basic">Основы контроллера</a>
+            <div class="nav-subgroup-nested">
+                <a href="#controller-properties">Свойства</a>
+                <a href="#controller-constructor">Конструктор</a>
+            </div>
+            <a href="#controller-interactions">Обработка взаимодействий</a>
+            <div class="nav-subgroup-nested">
+                <a href="#controller-mouse-pressed">Нажатие мыши</a>
+                <a href="#controller-mouse-dragged">Перетаскивание</a>
+                <a href="#controller-mouse-released">Отпускание</a>
+                <a href="#controller-draw">Отрисовка</a>
+            </div>
+        </div>
+    </div>
+    </nav>
+
+    <main class="content">
+      <h1>Документация движка</h1>
+      <section id="sketch">
+        <h2>sketch.js</h2>
+        <p>
+          Основной файл игровой логики, содержащий базовые классы и настройку
+          игры.
+        </p>
+      </section>
+      <section id="constants">
+        <h2>Константы</h2>
+        <h3>PIECE_EMOJIS</h3>
+        <p>
+          Объект, содержащий отображение эмодзи для каждой фигуры обоих цветов.
+        </p>
+        <pre><code>
+const PIECE_EMOJIS = {
+    white: { ... },
+    black: { ... }
+}
+            </code></pre>
+      </section>
+
+      <section id="tile-class">
+        <h2>Класс Tile</h2>
+        <h3>Конструктор</h3>
+        <p><code>constructor(x, y)</code></p>
+        <p>Создает новую клетку с координатами x и y.</p>
+
+        <h3>Методы</h3>
+        <h4>occupy(piece)</h4>
+        <p>Размещает фигуру на клетке.</p>
+        <ul>
+          <li><strong>Параметры:</strong> piece - объект фигуры</li>
+          <li><strong>Возвращает:</strong> void</li>
+          <li><strong>Исключения:</strong> Error если клетка уже занята</li>
+        </ul>
+
+        <h4>clear()</h4>
+        <p>Очищает клетку от фигуры.</p>
+
+        <h4>draw(tileSize)</h4>
+        <p>Отрисовывает клетку и фигуру на ней.</p>
+        <ul>
+          <li>
+            <strong>Параметры:</strong> tileSize - размер клетки в пикселях
+          </li>
+        </ul>
+      </section>
+
+      <section id="graveyard-class">
+        <h2>Класс Graveyard</h2>
+        <h3>Конструктор</h3>
+        <p><code>constructor(color, x, y, width, height)</code></p>
+        <p>Создает "кладбище" для сбитых фигур определенного цвета.</p>
+
+        <h3>Методы</h3>
+        <h4>updateDeadPieces(board)</h4>
+        <p>Обновляет счетчик сбитых фигур.</p>
+        <ul>
+          <li><strong>Параметры:</strong> board - объект доски</li>
+        </ul>
+
+        <h4>draw()</h4>
+        <p>Отрисовывает "кладбище" и сбитые фигуры.</p>
+      </section>
+
+      <section id="board-class">
+        <h2>Класс Board</h2>
+        <h3>Конструктор</h3>
+        <p><code>constructor(width = 8, height = 8)</code></p>
+        <p>Создает игровую доску указанного размера.</p>
+
+        <h3>Методы</h3>
+        <h4>addPiece(piece)</h4>
+        <p>Добавляет фигуру на доску.</p>
+
+        <h4>createTiles()</h4>
+        <p>Создает массив клеток доски.</p>
+
+        <h4>getTileAt(x, y)</h4>
+        <p>Возвращает клетку по координатам.</p>
+
+        <h4>draw()</h4>
+        <p>Отрисовывает доску.</p>
+      </section>
+
+      <section id="setup">
+        <h2>Настройка игры</h2>
+        <p>Описаны функции p5.js для инициализации и управления игрой:</p>
+        <ul>
+          <li><code>setup()</code> - начальная настройка игры</li>
+          <li><code>draw()</code> - цикл отрисовки</li>
+          <li><code>mousePressed()</code> - обработка нажатия мыши</li>
+          <li><code>mouseDragged()</code> - обработка перетаскивания</li>
+          <li>
+            <code>mouseReleased()</code> - обработка отпускания кнопки мыши
+          </li>
+        </ul>
+      </section>
+      <section id="pieces">
+        <h2>pieces.js</h2>
+        <p>
+          Файл, содержащий определения базового класса фигуры и его наследников.
+          Определяет основную логику движения и взаимодействия фигур на доске.
+        </p>
+
+        <section id="piece-basic">
+            <h3>Базовые методы Piece</h3>
+          <p>
+            Абстрактный класс, определяющий базовую функциональность для всех
+            фигур. Содержит общую логику перемещения, захвата и проверки пути.
+          </p>
+
+          <section id="piece-constructor">
+            <h4>Конструктор</h4>
+          <pre><code>constructor(name, color)</code></pre>
+          <ul>
+            <li>
+              <strong>name:</strong> имя фигуры (pawn, rook, knight и т.д.)
+            </li>
+            <li><strong>color:</strong> цвет фигуры ('white' или 'black')</li>
+          </ul>
+
+        </section>
+
+        <section id="piece-properties">
+            <h4>Основные свойства</h4>
+          <ul>
+            <li>
+              <code>currentTile</code> - текущая клетка фигуры (объект Tile)
+            </li>
+            <li>
+              <code>hasMoved</code> - флаг первого хода (используется для особых
+              правил пешек и рокировки)
+            </li>
+            <li><code>state</code> - состояние фигуры ('alive' или 'dead')</li>
+          </ul>
+
+        </section>
+
+        <section id="piece-core-methods">
+            <h4>Ключевые методы</h4>
+
+          <h5>createCaptureResult(isValid, capturedPieces = [])</h5>
+          <p>
+            Унифицированный метод создания результата проверки захвата.
+            Используется всеми фигурами для стандартизации ответа при проверке
+            возможности взятия.
+          </p>
+          <pre><code>// Пример использования
+        return this.createCaptureResult(true, [targetPiece]);  // Успешный захват
+        return this.createCaptureResult(false);  // Невозможный захват</code></pre>
+          <ul>
+            <li><strong>isValid:</strong> boolean - возможен ли захват</li>
+            <li>
+              <strong>capturedPieces:</strong> Array - список фигур, которые
+              будут взяты (важно для особых правил)
+            </li>
+            <li>
+              <strong>Возвращает:</strong> объект { isValid, capturedPieces }
+            </li>
+          </ul>
+
+          <h5>spawn(tile)</h5>
+          <p>
+            Метод размещения фигуры на доске. Устанавливает двустороннюю связь
+            между фигурой и клеткой.
+          </p>
+          <pre><code>// Пример использования
+        const piece = Piece.createPiece('pawn', 'white');
+        piece.spawn(board.getTileAt(0, 6));</code></pre>
+          <ul>
+            <li><strong>tile:</strong> объект Tile - клетка для размещения</li>
+            <li>
+              <strong>Исключения:</strong>
+              <ul>
+                <li>Если передан невалидный объект клетки</li>
+                <li>Если клетка уже занята другой фигурой</li>
+              </ul>
+            </li>
+          </ul>
+
+          <h5>static createPiece(name, color)</h5>
+          <p>
+            Фабричный метод, централизующий создание фигур. Гарантирует
+            корректное создание фигур нужного типа.
+          </p>
+          <pre><code>// Пример использования
+        const knight = Piece.createPiece('knight', 'white');
+        const pawn = Piece.createPiece('pawn', 'black');</code></pre>
+          <ul>
+            <li><strong>name:</strong> строка - тип фигуры</li>
+            <li><strong>color:</strong> строка - цвет фигуры</li>
+            <li>
+              <strong>Возвращает:</strong> экземпляр соответствующего класса
+              фигуры
+            </li>
+            <li>
+              <strong>Поддерживаемые типы:</strong> pawn, rook, knight, bishop,
+              queen, king, jumper, ogre
+            </li>
+          </ul>
+
+          <h5>isPathClear(targetTile, board)</h5>
+          <p>
+            Служебный метод для проверки пути между текущей позицией фигуры и
+            целевой клеткой. Используется фигурами, которые не могут
+            перепрыгивать через другие фигуры (ладья, слон, ферзь).
+          </p>
+          <pre><code>// Внутреннее использование в методах isValidMove
+        if (this.isPathClear(targetTile, board)) {
+            // путь свободен, движение возможно
+        }</code></pre>
+          <ul>
+            <li><strong>targetTile:</strong> целевая клетка</li>
+            <li>
+              <strong>board:</strong> объект доски для проверки промежуточных
+              клеток
+            </li>
+            <li>
+              <strong>Возвращает:</strong> boolean - true если путь свободен
+            </li>
+            <li>
+              <strong>Алгоритм:</strong> проверяет все клетки между текущей и
+              целевой позицией на наличие других фигур
+            </li>
+          </ul>
+
+        </section>
+
+        <section id="piece-extended">
+            <h3>Методы наследников</h3>
+            <p>Абстрактные методы, которые должны быть реализованы каждым подклассом фигуры для определения их уникального поведения.</p>
+    
+            <section id="piece-valid-move">
+                <h4>isValidMove</h4>
+          <p>
+            Абстрактный метод, определяющий правила движения фигуры. Каждый
+            подкласс реализует свою логику проверки допустимости хода.
+          </p>
+          <pre><code>// Базовая структура метода в подклассах
+isValidMove(targetTile, board) {
+    // 1. Проверка занятости целевой клетки
+    if (targetTile.occupyingPiece) return false;
+
+    // 2. Проверка паттерна движения
+    const dx = targetTile.x - this.currentTile.x;
+    const dy = targetTile.y - this.currentTile.y;
+
+    // 3. Специфичные для фигуры проверки
+    // Например, для коня:
+    return (Math.abs(dx) === 2 && Math.abs(dy) === 1) ||
+           (Math.abs(dx) === 1 && Math.abs(dy) === 2);
+}</code></pre>
+          <ul>
+            <li>
+              <strong>Параметры:</strong>
+              <ul>
+                <li><code>targetTile</code> - целевая клетка для хода</li>
+                <li>
+                  <code>board</code> - текущее состояние доски для контекстных
+                  проверок
+                </li>
+              </ul>
+            </li>
+            <li><strong>Возвращает:</strong> boolean - возможен ли ход</li>
+            <li>
+              <strong>Особенности реализации:</strong>
+              <ul>
+                <li>Всегда проверяет отсутствие фигуры в целевой клетке</li>
+                <li>
+                  Учитывает специфичные для каждой фигуры паттерны движения
+                </li>
+                <li>
+                  Может использовать <code>isPathClear</code> для проверки пути
+                </li>
+                <li>
+                  Может учитывать состояние <code>hasMoved</code> для особых
+                  правил
+                </li>
+              </ul>
+            </li>
+          </ul>
+
+        </section>
+
+        <section id="piece-valid-capture">
+            <h4>isValidCapture</h4>
+          <p>
+            Абстрактный метод, определяющий правила взятия фигур. Может
+            отличаться от правил обычного хода (например, у пешки).
+          </p>
+          <pre><code>// Базовая структура метода в подклассах
+isValidCapture(targetTile, board) {
+    // 1. Базовые проверки возможности взятия
+    if (!targetTile.occupyingPiece ||
+        targetTile.occupyingPiece.color === this.color) {
+        return this.createCaptureResult(false);
+    }
+
+    // 2. Проверка паттерна взятия
+    const dx = targetTile.x - this.currentTile.x;
+    const dy = targetTile.y - this.currentTile.y;
+
+    // 3. Специфичные для фигуры проверки
+    // Например, для пешки:
+    if (Math.abs(dx) === 1 && dy === direction) {
+        return this.createCaptureResult(true,
+               [targetTile.occupyingPiece]);
+    }
+
+    return this.createCaptureResult(false);
+}</code></pre>
+          <ul>
+            <li>
+              <strong>Параметры:</strong>
+              <ul>
+                <li><code>targetTile</code> - клетка с фигурой для взятия</li>
+                <li><code>board</code> - текущее состояние доски</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Возвращает:</strong> объект результата захвата
+              <pre><code>{
+    isValid: boolean,      // возможно ли взятие
+    capturedPieces: []     // список взятых фигур
+}</code></pre>
+            </li>
+            <li>
+              <strong>Особенности реализации:</strong>
+              <ul>
+                <li>Проверяет наличие фигуры противника в целевой клетке</li>
+                <li>
+                  Может иметь уникальные правила взятия (пешка ходит и бьет
+                  по-разному)
+                </li>
+                <li>
+                  Поддерживает множественное взятие (для будущих расширений)
+                </li>
+                <li>
+                  Использует <code>createCaptureResult</code> для стандартизации
+                  ответа
+                </li>
+              </ul>
+            </li>
+          </ul>
+
+          <h4>Примеры различий в реализациях</h4>
+          <ul>
+            <li><strong>Пешка:</strong> Ходит вперёд, бьёт по диагонали</li>
+            <li>
+              <strong>Конь:</strong> Одинаковые правила хода и взятия,
+              игнорирует фигуры на пути
+            </li>
+            <li>
+              <strong>Прыгун:</strong> Ходит на одну клетку по диагонали, бьёт
+              через клетку с взятием промежуточной фигуры
+            </li>
+            <li>
+              <strong>Огр:</strong> Одинаковые правила хода и взятия на две
+              клетки по прямым
+            </li>
+          </ul>
+        </section>
+        </section>
+      </section>
+    </section>
+    <section id="controls">
+        <h2>controls.js</h2>
+        <p>Файл, управляющий взаимодействием игрока с доской через drag-and-drop интерфейс и контролирующий очередность ходов.</p>
+    
+        <section id="controller-basic">
+            <h3>Основы контроллера</h3>
+    
+            <section id="controller-properties">
+                <h4>Свойства</h4>
+                <ul>
+                    <li><code>board</code> - ссылка на игровую доску</li>
+                    <li><code>selectedPiece</code> - текущая выбранная фигура (null если нет выбранной)</li>
+                    <li><code>isDragging</code> - флаг активного перетаскивания</li>
+                    <li><code>dragStartTile</code> - начальная клетка перетаскивания</li>
+                    <li><code>dragOffset</code> - смещение курсора относительно центра фигуры</li>
+                    <li><code>dragPosition</code> - текущая позиция перетаскиваемой фигуры</li>
+                    <li><code>currentTurn</code> - текущий ход ('white' или 'black')</li>
+                </ul>
+            </section>
+    
+            <section id="controller-constructor">
+                <h4>Конструктор</h4>
+                <pre><code>constructor(board)</code></pre>
+                <p>Инициализирует новый контроллер игры.</p>
+                <ul>
+                    <li><strong>Параметры:</strong>
+                        <ul>
+                            <li><code>board</code> - экземпляр игровой доски</li>
+                        </ul>
+                    </li>
+                    <li><strong>Инициализация:</strong> устанавливает начальные значения всех свойств и начинает игру за белых</li>
+                </ul>
+            </section>
+        </section>
+    
+        <section id="controller-interactions">
+            <h3>Обработка взаимодействий</h3>
+    
+            <section id="controller-mouse-pressed">
+                <h4>mousePressed(mouseX, mouseY)</h4>
+                <p>Обрабатывает начало перетаскивания фигуры.</p>
+                <pre><code>// Пример использования в p5.js
+    function mousePressed() {
+        gameController.mousePressed(mouseX, mouseY);
+    }</code></pre>
+                <ul>
+                    <li><strong>Логика работы:</strong>
+                        <ol>
+                            <li>Определяет клетку под курсором</li>
+                            <li>Проверяет наличие фигуры нужного цвета</li>
+                            <li>Инициализирует параметры перетаскивания</li>
+                            <li>Временно убирает фигуру с доски</li>
+                        </ol>
+                    </li>
+                </ul>
+            </section>
+    
+            <section id="controller-mouse-dragged">
+                <h4>mouseDragged(mouseX, mouseY)</h4>
+                <p>Обновляет позицию перетаскиваемой фигуры.</p>
+                <pre><code>// Пример использования в p5.js
+    function mouseDragged() {
+        gameController.mouseDragged(mouseX, mouseY);
+    }</code></pre>
+                <ul>
+                    <li>Обновляет <code>dragPosition</code> с учётом смещения курсора</li>
+                    <li>Используется для плавной анимации перетаскивания</li>
+                </ul>
+            </section>
+    
+            <section id="controller-mouse-released">
+                <h4>mouseReleased(mouseX, mouseY)</h4>
+                <p>Обрабатывает завершение перетаскивания и проверяет валидность хода.</p>
+                <pre><code>// Пример использования в p5.js
+    function mouseReleased() {
+        gameController.mouseReleased(mouseX, mouseY);
+    }</code></pre>
+                <ul>
+                    <li><strong>Алгоритм проверки хода:</strong>
+                        <ol>
+                            <li>Проверка возможности взятия</li>
+                            <li>Если взятие невозможно, проверка обычного хода</li>
+                            <li>При успешном ходе:
+                                <ul>
+                                    <li>Обработка взятых фигур</li>
+                                    <li>Смена активного игрока</li>
+                                    <li>Обновление статуса фигуры</li>
+                                </ul>
+                            </li>
+                            <li>При неудачном ходе - возврат фигуры на исходную позицию</li>
+                        </ol>
+                    </li>
+                </ul>
+            </section>
+    
+            <section id="controller-draw">
+                <h4>draw()</h4>
+                <p>Отрисовывает перетаскиваемую фигуру.</p>
+                <pre><code>// Пример использования в p5.js
+    function draw() {
+        // ... отрисовка доски ...
+        gameController.draw();
+    }</code></pre>
+                <ul>
+                    <li>Отображает эмодзи фигуры в процессе перетаскивания</li>
+                    <li>Учитывает текущую позицию перетаскивания</li>
+                    <li>Масштабирует эмодзи относительно размера клетки</li>
+                </ul>
+            </section>
+        </section>
+    </section>
+    
+    </main>
+  </body>
+</html>

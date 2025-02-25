@@ -1,0 +1,91 @@
+/* style.css */
+.container {
+    display: flex;
+    padding: 20px;
+    gap: 20px;
+}
+
+.sidebar {
+    width: 200px;
+    padding: 20px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+}
+
+.piece-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.piece-buttons button {
+    padding: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+    transition: background-color 0.2s;
+}
+
+.piece-buttons button:hover {
+    background-color: #e0e0e0;
+}
+
+.piece-buttons button.selected {
+    background-color: #b3d9ff;
+}
+
+.board-controls {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.board-controls button {
+    padding: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #4CAF50;
+    color: white;
+    transition: background-color 0.2s;
+}
+
+.board-controls button:hover {
+    background-color: #45a049;
+}
+
+#clearBoard {
+    background-color: #f44336;
+}
+
+#clearBoard:hover {
+    background-color: #da190b;
+}
+
+.main-content {
+    flex-grow: 1;
+}
+
+.code-output {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f8f8f8;
+    border-radius: 8px;
+}
+
+.code-output pre {
+    margin: 0;
+    white-space: pre-wrap;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+}
+
+h2, h3 {
+    margin-top: 0;
+    color: #333;
+}

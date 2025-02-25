@@ -1,0 +1,21 @@
+{
+  "name": "chaotic-chess",
+  "version": "1.0.0",
+  "description": "The project i can't start doing for over 5 weeks",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "chess",
+    "cardgame",
+    "socket"
+  ],
+  "author": "Dennis",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
