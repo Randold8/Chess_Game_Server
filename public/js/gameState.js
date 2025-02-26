@@ -1,10 +1,10 @@
 // gameState.js
 class GameState {
-    constructor(board, playerColor) {
+    constructor(board) {
         this.board = board;
         this.currentPlayer = 'white';
-        this.playerColor = playerColor;
-        this.turnCount = 0;
+        this.playerColor = null;
+        this.turnNumber = 0;
         this.cardDrawInterval = 3;
         this.currentCard = null;
         this.phase = 'normal';

@@ -21,12 +21,29 @@
     </style>
 </head>
 <body>
-    <script src="sketch.js"></script>
-    <script src="pieces.js"></script>
-    <script src="gameState.js"></script>
-    <script src="controls.js"></script>
-    <script src="cards.js"></script>
-    <script src="draw.js"></script>
+    <!-- Добавим проверку загрузки -->
+    <script>
+        window.addEventListener('error', function(e) {
+            console.error('Script loading error:', e);
+        });
+    </script>
+
+    <!-- Shared files -->
+    <script src="/shared/utils.js"></script>
+    <script src="/shared/pieceLogic.js"></script>
+    <script src="/shared/gameClasses.js"></script>
+
+    <!-- Then piece definitions -->
+    <script src="/js/pieces.js"></script>
+
+    <!-- Then everything else -->
+    <script src="/js/graveyard.js"></script>
+    <script src="/js/draw.js"></script>
+    <script src="/js/cards.js"></script>
+    <script src="/js/networkManager.js"></script>
+    <script src="/js/gameState.js"></script>
+    <script src="/js/controls.js"></script>
+    <script src="/js/sketch.js"></script>
 </body>
 </html>
 

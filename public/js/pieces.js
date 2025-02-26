@@ -1,98 +1,4 @@
-class Piece {
-    constructor(name, color) {
-        this.name = name;
-        this.color = color;
-        this.currentTile = null;
-        this.hasMoved = false;
-        this.hasDoubleMoved=false;
-        this.state = 'alive';
-        this.stats = {
-            canMove: true,
-            canAltMove: true,
-            canCapture: true,
-            canAltCapture: true
-        }
-    }
-    createCaptureResult(isValid, capturedPieces = []) {
-        return {
-            isValid: isValid,
-            capturedPieces: capturedPieces
-        };
-    }
-
-    spawn(tile) {
-        if (!(tile instanceof Tile)) {
-            throw new Error('Invalid tile object');
-        }
-        if (tile.occupyingPiece) {
-            throw new Error('Tile is already occupied');
-        }
-        this.currentTile = tile;
-        tile.occupy(this);
-    }
-    transform(newPieceName) {
-    // Create new piece of desired type
-    const newPiece = Piece.createPiece(newPieceName, this.color);
-    newPiece.board = this.board; // Transfer board reference
-
-    // Transfer important properties
-    newPiece.state = this.state;
-    newPiece.hasMoved = this.hasMoved;
-
-    // Replace this piece in the board's pieces array
-    const pieceIndex = this.board.pieces.indexOf(this);
-    if (pieceIndex > -1) {
-        this.board.pieces[pieceIndex] = newPiece;
-    }
-
-    // Move to current tile if exists
-    const tile = this.currentTile;
-    if (tile) {
-        tile.clear();
-        newPiece.spawn(tile);
-    }
-
-    return newPiece;
-    }
-
-    // Add helper method to check if piece is of certain types
-    isOfType(...types) {
-        return types.includes(this.name);
-    }
-    // Factory method to create specific piece types
-    static createPiece(name, color) {
-        switch(name.toLowerCase()) {
-            case 'pawn': return new Pawn(color);
-            case 'rook': return new Rook(color);
-            case 'knight': return new Knight(color);
-            case 'bishop': return new Bishop(color);
-            case 'queen': return new Queen(color);
-            case 'king': return new King(color);
-            case 'jumper': return new Jumper(color);
-            case 'ogre': return new Ogre(color); // Add this line
-            default: throw new Error('Invalid piece type');
-        }
-    }
-
-    isPathClear(targetTile, board) {
-        // Helper method to check if path is clear between current tile and target
-        const dx = Math.sign(targetTile.x - this.currentTile.x);
-        const dy = Math.sign(targetTile.y - this.currentTile.y);
-        let x = this.currentTile.x + dx;
-        let y = this.currentTile.y + dy;
-
-        while (x !== targetTile.x || y !== targetTile.y) {
-            if (board.getTileAt(x, y).occupyingPiece) {
-                return false;
-            }
-            x += dx;
-            y += dy;
-        }
-        return true;
-    }
-}
-
-class Pawn extends Piece {
+class Pawn extends window.Piece {
     constructor(color) {
         super('pawn', color);
     }
@@ -150,8 +56,9 @@ class Pawn extends Piece {
         return false;
     }
 }
+window.Piece.registerPieceType('pawn', Pawn);
 
-class Rook extends Piece {
+class Rook extends window.Piece {
     constructor(color) {
         super('rook', color);
     }
@@ -187,8 +94,9 @@ class Rook extends Piece {
         return false;
     }
 }
+window.Piece.registerPieceType('rook', Rook);
 
-class Knight extends Piece {
+class Knight extends window.Piece {
     constructor(color) {
         super('knight', color);
     }
@@ -224,8 +132,8 @@ class Knight extends Piece {
         return false;
     }
 }
-
-class Bishop extends Piece {
+window.Piece.registerPieceType('knight', Knight);
+class Bishop extends window.Piece {
     constructor(color) {
         super('bishop', color);
     }
@@ -261,8 +169,8 @@ class Bishop extends Piece {
         return false;
     }
 }
-
-class Queen extends Piece {
+window.Piece.registerPieceType('bishop', Bishop);
+class Queen extends window.Piece {
     constructor(color) {
         super('queen', color);
     }
@@ -302,8 +210,9 @@ class Queen extends Piece {
         return false;
     }
 }
+window.Piece.registerPieceType('queen', Queen);
 // pieces.js (continued)
-class King extends Piece {
+class King extends window.Piece {
     constructor(color) {
         super('king', color);
     }
@@ -341,7 +250,8 @@ class King extends Piece {
     }
 
 }
-class Jumper extends Piece {
+window.Piece.registerPieceType('king', King);
+class Jumper extends window.Piece {
     constructor(color) {
         super('jumper', color);
     }
@@ -392,8 +302,9 @@ class Jumper extends Piece {
         return false;
     }
 }
+window.Piece.registerPieceType('jumper', Jumper);
 // In pieces.js
-class Ogre extends Piece {
+class Ogre extends window.Piece {
     constructor(color) {
         super('ogre', color);
     }
@@ -434,3 +345,7 @@ class Ogre extends Piece {
         return false;
     }
 }
+window.Piece.registerPieceType('ogre', Ogre);
+// В конце pieces.js
+console.log("All piece types registered, setting ready state");
+window.Piece.setReady();

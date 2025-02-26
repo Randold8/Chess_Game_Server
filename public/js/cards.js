@@ -245,7 +245,16 @@ class Card {
     }
 
     execute() {
-        // Override in subclasses
+        const selections = [];
+        for (let stage = 0; stage < this.stages; stage++) {
+            const stageSelections = this.selectedObjects.get(stage);
+            stageSelections.forEach((targetTile, selection) => {
+                selections.push(targetTile);
+            });
+        }
+
+        // Отправляем выборы карты на сервер
+        gameController.networkManager.sendCardAction(selections);
     }
 
     // Visual representation

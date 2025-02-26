@@ -1,5 +1,26 @@
 // draw.js
-
+const PIECE_EMOJIS = {
+    white: {
+        king: '♔',
+        queen: '♕',
+        rook: '♖',
+        bishop: '♗',
+        knight: '♘',
+        pawn: '♙',
+        jumper: '⛀',
+        ogre: '🧌'
+    },
+    black: {
+        king: '♚',
+        queen: '♛',
+        rook: '♜',
+        bishop: '♝',
+        knight: '♞',
+        pawn: '♟',
+        jumper: '⛂',
+        ogre: '👹'
+    }
+};
 class DrawManager {
     constructor() {
         this.tileSize = 800 / 8;
@@ -10,7 +31,7 @@ class DrawManager {
         // Draw tiles
         boardState.tiles.forEach(tile => this.drawTile(tile));
 
-        // Draw pieces
+        // Draw only alive pieces
         boardState.pieces.forEach(piece => {
             if (piece.state === 'alive' && piece.currentTile) {
                 this.drawPiece(piece);
@@ -44,6 +65,8 @@ class DrawManager {
     }
 
     drawPiece(piece) {
+        if (piece.state !== 'alive') return;
+
         fill(0);
         textAlign(CENTER, CENTER);
         textSize(this.tileSize * 0.8);
