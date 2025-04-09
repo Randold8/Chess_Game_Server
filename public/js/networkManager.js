@@ -153,6 +153,9 @@ class NetworkManager {
         }
 
         console.log("State applied, current player:", this.gameController.gameState.currentPlayer);
+
+        // для зеленых полей
+        // this.gameController.board.resetTileStates();
     }
 
     createPieceFromParameter(param) {
