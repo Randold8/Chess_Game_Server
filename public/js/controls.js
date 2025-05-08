@@ -117,41 +117,67 @@ class GameController {
         };
     }
 
-    mouseReleased(mouseX, mouseY) {
-        if (this.gameState.currentPlayer !== this.gameState.playerColor) {
-            return;
-        }
+    
+mouseReleased(mouseX, mouseY) {
+    if (this.gameState.currentPlayer !== this.gameState.playerColor) {
+        return;
+    }
 
-        if (!this.isDragging || this.gameState.phase !== 'normal') return;
+    if (!this.isDragging || this.gameState.phase !== 'normal') return;
 
-        const targetX = Math.floor(mouseX / tileSize);
-        const targetY = Math.floor(mouseY / tileSize);
-        const targetTile = this.board.getTileAt(targetX, targetY);
+    const targetX = Math.floor(mouseX / tileSize);
+    const targetY = Math.floor(mouseY / tileSize);
+    const targetTile = this.board.getTileAt(targetX, targetY);
 
-        if (targetTile && this.selectedPiece && targetTile !== this.dragStartTile) {
-            this.lastMove = {
-                piece: this.selectedPiece,
-                fromTile: this.dragStartTile,
-                toTile: targetTile
-            };
+    if (targetTile && this.selectedPiece && targetTile !== this.dragStartTile) {
+        this.lastMove = {
+            piece: this.selectedPiece,
+            fromTile: this.dragStartTile,
+            toTile: targetTile
+        };
 
+        // Check if this is a capture move
+        const captureResult = this.selectedPiece.isValidCapture(targetTile, this.board);
+        if (captureResult.isValid) {
+            // Handle capture locally before sending to server
+            // Mark captured pieces as dead and clear their tiles
+            captureResult.capturedPieces.forEach(capturedPiece => {
+                if (capturedPiece && capturedPiece.currentTile) {
+                    capturedPiece.state = 'dead';
+                    capturedPiece.currentTile.clear();
+                }
+            });
+
+            // Now move the capturing piece
+            this.selectedPiece.spawn(targetTile);
+
+            // Send move to server
             this.networkManager.sendMove(this.dragStartTile, targetTile);
-
-            if (this.selectedPiece.isValidMove(targetTile, this.board) ||
-                this.selectedPiece.isValidCapture(targetTile, this.board).isValid) {
-                this.selectedPiece.spawn(targetTile);
-            } else {
-                this.selectedPiece.spawn(this.dragStartTile);
-            }
-        } else {
+        }
+        else if (this.selectedPiece.isValidMove(targetTile, this.board)) {
+            // Regular move
+            this.selectedPiece.spawn(targetTile);
+            this.networkManager.sendMove(this.dragStartTile, targetTile);
+        }
+        else {
+            // Invalid move, return piece to original position
             this.selectedPiece.spawn(this.dragStartTile);
         }
-
-        this.isDragging = false;
-        this.selectedPiece = null;
-        this.dragStartTile = null;
-        this.dragPosition = { x: 0, y: 0 };
+    } else {
+        // Dropped on same tile or invalid location
+        if (this.selectedPiece) {
+            this.selectedPiece.spawn(this.dragStartTile);
+        }
     }
+
+    // Reset all tile states
+    this.board.resetTileStates();
+
+    this.isDragging = false;
+    this.selectedPiece = null;
+    this.dragStartTile = null;
+    this.dragPosition = { x: 0, y: 0 };
+}
 
     revertMove() {
         if (this.lastMove) {

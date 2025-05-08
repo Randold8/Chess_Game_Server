@@ -5,26 +5,23 @@ class Pawn extends window.Piece {
 
     isValidMove(targetTile, board) {
         const direction = this.color === 'white' ? -1 : 1;
-        const startRank = this.color === 'white' ? 6 : 1;
-
+    
         // Basic one square forward movement
         if (targetTile.x === this.currentTile.x &&
             targetTile.y === this.currentTile.y + direction &&
             !targetTile.occupyingPiece) {
-            this.hasDoubleMoved=false;
             return true;
         }
-
-        // Initial two square movement
+    
+        // Initial two square movement - only if the pawn hasn't moved yet
         if (!this.hasMoved &&
             targetTile.x === this.currentTile.x &&
             targetTile.y === this.currentTile.y + (2 * direction) &&
             !targetTile.occupyingPiece &&
             !board.getTileAt(this.currentTile.x, this.currentTile.y + direction).occupyingPiece) {
-            this.hasDoubleMoved=true;
             return true;
         }
-
+    
         return false;
     }
 

@@ -41,15 +41,28 @@ class GameState {
         const selectTarget = tile.occupyingPiece || tile;
         this.currentCard.toggleSelection(selectTarget);
     }
-    handlePieceSelection(tile) {
-        if (this.phase !== 'normal') return;
+    
+handlePieceSelection(tile) {
+    if (this.phase !== 'normal') return;
 
+    // Reset all tile states first
+    this.board.resetTileStates();
+
+    if (tile.occupyingPiece) {
+        // For each tile on the board, check if it's a valid move
         this.board.tiles.forEach(eachTile => {
-            if (tile.occupyingPiece.isValidMove(eachTile,this.board) || tile.occupyingPiece.isValidCapture(eachTile,this.board).isValid){
-                eachTile.state = 'selected';
+            // Don't highlight the current tile as a valid move
+            if (eachTile !== tile) {
+                const isValidMove = tile.occupyingPiece.isValidMove(eachTile, this.board);
+                const captureResult = tile.occupyingPiece.isValidCapture(eachTile, this.board);
+
+                if (isValidMove || captureResult.isValid) {
+                    eachTile.state = 'selectable';
+                }
             }
         });
-    } 
+    }
+} 
 
 
     executeCard() {

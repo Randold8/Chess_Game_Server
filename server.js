@@ -273,7 +273,9 @@ class GameRoom {
             });
 
             // 3. Перемещаем фигуру на новую клетку
-            movingPiece.spawn(targetTile);
+    movingPiece.spawn(targetTile);
+    movingPiece.hasMoved = true; // Always set hasMoved when a piece moves
+
             changes.push({
                 tileId: targetTileId,
                 actionType: 0x02, // Add Piece
