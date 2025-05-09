@@ -5,34 +5,26 @@ class GameState {
         this.currentPlayer = 'white';
         this.playerColor = null;
         this.turnNumber = 0;
-        this.cardDrawInterval = 3;
+        this.cardDrawInterval = 2; // Draw every 3rd turn
+        this.cardDrawCounter = 0;  // Initialize counter
         this.currentCard = null;
         this.phase = 'normal';
         this.cardManager = new CardManager(board);
+    
+        // Debug log
+        console.log('GameState initialized with card draw interval:', this.cardDrawInterval);
     }
 
     startTurn() {
-        this.turnCount++;
-        if (this.turnCount % this.cardDrawInterval === 0) {
-            console.log('drawing card')
-            this.drawCard();
-        }
+        console.log(`Starting turn ${this.turnNumber} for player ${this.currentPlayer}`);
+        // Card drawing is now handled by the server, so we don't need to do anything here
     }
-
+    
+    // Remove the drawCard method or keep it for debugging only
     drawCard() {
-        const availableCards = this.cardManager.getAvailableCards();
-
-        if (availableCards.length === 0) {
-            console.log("No cards available to draw!");
-            return;
-        }
-
-        const CardClass = availableCards[Math.floor(Math.random() * availableCards.length)];
-        this.currentCard = new CardClass(this.board);
-        this.currentCard.determineSelectables();
-        this.phase = 'card-selection';
-        this.updateTileStates(); // Add this line
-    }  
+        console.log('WARNING: Local drawCard called but cards should come from server');
+        // This method is kept for debugging but should not be used in normal gameplay
+    }
 
     handleCardSelection(tile) {
         if (!this.currentCard || this.phase !== 'card-selection') return;
@@ -65,25 +57,47 @@ handlePieceSelection(tile) {
 } 
 
 
-    executeCard() {
-        if (!this.currentCard || this.phase !== 'card-selection') return;
+    
 
-        // Only execute if we're at the final stage
-        if (this.currentCard.currentStage === this.currentCard.stages - 1) {
-            this.currentCard.execute();
-            this.board.resetTileStates();
-            this.currentCard = null;
-            this.phase = 'normal';
+executeCard() {
+    if (!this.currentCard || this.phase !== 'card-selection') {
+        console.log("No card to execute or not in card selection phase");
+        return;
+    }
+
+    // Only execute if we're at the final stage and all selections are complete
+    if (this.currentCard.currentStage === this.currentCard.stages - 1 &&
+        this.currentCard.isStageComplete()) {
+
+        console.log("Executing card:", this.currentCard.name);
+        const result = this.currentCard.execute();
+
+        if (result) {
+            console.log('Card execution sent to server');
+            // We'll keep the card visible until we get response from server
+        } else {
+            console.log('Card execution failed locally');
+            this.declineCard();
         }
+    } else {
+        console.log('Card not ready to execute - incomplete stages',
+                   `currentStage: ${this.currentCard.currentStage}, isComplete: ${this.currentCard.isStageComplete()}`);
     }
+}
 
-    declineCard() {
-        if (!this.currentCard || this.phase !== 'card-selection') return;
+declineCard() {
+    if (!this.currentCard || this.phase !== 'card-selection') return;
 
-        this.board.resetTileStates();
-        this.currentCard = null;
-        this.phase = 'normal';
-    }
+    console.log('Declining card:', this.currentCard?.name || 'unknown');
+
+    // Tell the server we're declining
+    gameController.networkManager.sendDeclineCard();
+
+    // Clean up locally
+    this.board.resetTileStates();
+    this.currentCard = null;
+    this.phase = 'normal';
+}
 
     endTurn() {
         this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
@@ -94,18 +108,25 @@ handlePieceSelection(tile) {
 
     // Update button hit detection to match new positions
     isOverOkButton(x, y) {
-        if (!this.currentCard || this.phase !== 'card-selection' || !this.currentCard.getState().buttons) return false;
-
-        const okButton = this.currentCard.getState().buttons[0];
-        return x > okButton.x && x < okButton.x + okButton.width &&
-               y > okButton.y && y < okButton.y + okButton.height;
+        if (!this.currentCard || this.phase !== 'card-selection') return false;
+    
+        const cardState = this.currentCard.getState();
+        if (!cardState.buttons || cardState.buttons.length === 0) return false;
+    
+        const okButton = cardState.buttons[0];
+        return x >= okButton.x && x <= okButton.x + okButton.width &&
+               y >= okButton.y && y <= okButton.y + okButton.height;
     }
-
+    
     isOverDeclineButton(x, y) {
-        if (!this.currentCard || this.phase !== 'card-selection' || !this.currentCard.getState().buttons) return false;
-        const declineButton = this.currentCard.getState().buttons[1];
-        return x > declineButton.x && x < declineButton.x + declineButton.width &&
-               y > declineButton.y && y < declineButton.y + declineButton.height;
+        if (!this.currentCard || this.phase !== 'card-selection') return false;
+    
+        const cardState = this.currentCard.getState();
+        if (!cardState.buttons || cardState.buttons.length < 2) return false;
+    
+        const declineButton = cardState.buttons[1];
+        return x >= declineButton.x && x <= declineButton.x + declineButton.width &&
+               y >= declineButton.y && y <= declineButton.y + declineButton.height;
     }
     updateTileStates(reset = true) {
         // Reset all tiles first
@@ -130,6 +151,27 @@ handlePieceSelection(tile) {
             }
         }
     }
+    forceShowCard() {
+        if (this.currentCard) {
+            console.log("Forcing card display:", this.currentCard.name);
+            this.phase = 'card-selection';
+        } else {
+            console.log("No card available to show");
+    
+            // Force create a test card
+            const availableCards = this.cardManager.getAvailableCards();
+            if (availableCards.length > 0) {
+                const CardClass = availableCards[0];
+                this.currentCard = new CardClass(this.board);
+                this.currentCard.reset();
+                this.phase = 'card-selection';
+                console.log("Created test card:", this.currentCard.name);
+            }
+        }
+    }
+
+    
+
 }
 
 

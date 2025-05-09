@@ -25,23 +25,29 @@ class GameController {
             cardState: null,
             buttonStates: null
         };
-
+    
+        // Only log periodically to avoid console spam
+        if (this._lastLogTime === undefined || Date.now() - this._lastLogTime > 1000) {
+            console.log(`getUIState - phase: ${this.gameState.phase}, card: ${this.gameState.currentCard?.name || 'none'}`);
+            this._lastLogTime = Date.now();
+        }
+    
         if (this.gameState.phase === 'card-selection') {
             this.gameState.updateTileStates();
         }
-
+    
         if (this.isDragging && this.selectedPiece) {
             state.dragState = {
                 piece: this.selectedPiece,
                 position: this.dragPosition
             };
         }
-
+    
         if (this.gameState.currentCard && this.gameState.phase === 'card-selection') {
             state.cardState = this.gameState.currentCard.getState();
             state.buttonStates = state.cardState.buttons;
         }
-
+    
         return state;
     }
 
@@ -63,6 +69,7 @@ class GameController {
                 return;
             }
             if (this.gameState.isOverDeclineButton(mouseX, mouseY)) {
+                console.log('Decline button clicked');
                 this.gameState.declineCard();
                 return;
             }

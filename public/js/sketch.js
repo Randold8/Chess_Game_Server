@@ -7,12 +7,28 @@ let drawManager;
 let whiteGraveyard;
 let blackGraveyard;
 
+let cardImages = {};
+
 function preload() {
-    cardImage = loadImage("assets/example.png");
+    // Load card images
+    cardImages = {
+        default: loadImage("assets/example.png"),
+        polymorph: loadImage("assets/polymorph.png"),
+        onslaught: loadImage("assets/onslaught.png"),
+        bizarreMutation: loadImage("assets/bizarremutation.png"),
+        draught: loadImage("assets/draught.png"),
+        telekinesis: loadImage("assets/telekinesis.png"),
+        topsyTurvy: loadImage("assets/topsyturvy.png")
+    };
 }
 
 function setup() {
     createCanvas(1000, 800);
+    // Make card images available globally
+    window.cardImages = cardImages;
+
+    // Proactively create the card manager
+    window.CardManager = CardManager;
 
     // Проверяем, что все необходимые классы загружены
     if (!window.Board || !window.Piece) {
@@ -39,7 +55,7 @@ function setup() {
 }
 
 function draw() {
-    if (!drawManager) return; // Добавляем проверку
+    if (!drawManager) return;
 
     background(220);
 
@@ -49,6 +65,15 @@ function draw() {
     // Draw graveyards
     drawManager.drawGraveyard(whiteGraveyard.getState());
     drawManager.drawGraveyard(blackGraveyard.getState());
+
+    // Log game phase for debugging
+    if (gameController && gameController.gameState) {
+        // Only log when it changes to avoid console spam
+        if (window.lastPhase !== gameController.gameState.phase) {
+            console.log("Current game phase:", gameController.gameState.phase);
+            window.lastPhase = gameController.gameState.phase;
+        }
+    }
 
     // Draw UI elements
     const uiState = gameController.getUIState();
@@ -67,6 +92,26 @@ function draw() {
     if (uiState.buttonStates) {
         drawManager.drawCardButtons(uiState.buttonStates);
     }
+    // Debug overlay for card state
+    if (gameController && gameController.gameState) {
+        fill(0);
+        textSize(14);
+        textAlign(LEFT, TOP);
+        text(`Phase: ${gameController.gameState.phase}`, 10, 10);
+        text(`Card: ${gameController.gameState.currentCard?.name || 'none'}`, 10, 30);
+    }
+
+    // Extra debug for card drawing
+    if (gameController && gameController.gameState &&
+        gameController.gameState.currentCard) {
+
+        // Force draw card directly for debugging
+        const cardState = gameController.gameState.currentCard.getState();
+        fill(255, 0, 0);
+        stroke(255, 0, 0);
+        strokeWeight(2);
+        rect(cardState.x, cardState.y, 10, 10); // Small red square to mark card position
+    }
 }
 
 function mousePressed() {
@@ -84,6 +129,12 @@ function mouseDragged() {
 function mouseReleased() {
     if (gameController) {
         gameController.mouseReleased(mouseX, mouseY);
+    }
+}
+function keyPressed() {
+    if (key === 'c' || key === 'C') {
+        console.log("Forcing card display");
+        gameController.gameState.forceShowCard();
     }
 }
 

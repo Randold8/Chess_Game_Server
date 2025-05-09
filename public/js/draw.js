@@ -117,49 +117,63 @@ class DrawManager {
     }
 
     drawCard(cardState) {
-        if (!cardState) return;
-
-        const cornerRadius = 10;
-        const padding = 15;
-        const textYOffset = 40; // Adjust offset for text below image
-
-        fill(cardState.color);
+        if (!cardState) {
+            console.log("No card state provided to drawCard");
+            return;
+        }
+    
+    
+        // Simple, reliable card drawing
+        push(); // Save drawing context
+    
+        // Draw card background
+        fill(245, 222, 179); // Wheat color
         stroke(0);
-        rect(cardState.x, cardState.y, cardState.width, cardState.height, cornerRadius);
+        strokeWeight(2);
+        rect(cardState.x, cardState.y, cardState.width, cardState.height, 10);
     
-            // draw the image
-        if(cardState.image) {
-            imageMode(CENTER);
-                
-                // Calculate image size and position
-            let imageSize = Math.min(cardState.width - padding * 2, cardState.height * 0.4); // Adjust these values
-            let imageY = cardState.y + imageSize/2 + padding; // Position the image in the top
+        // Draw card name
+        fill(0);
+        noStroke();
+        textSize(24);
+        textAlign(CENTER, TOP);
+        text(cardState.name,
+             cardState.x + cardState.width/2,
+             cardState.y + 20);
     
-            let currentImage = cardState.image === 'polymorph.png' ? polymorphImage : cardImage;
+        // Draw card description
+        textSize(16);
+        textAlign(CENTER, TOP);
+        text(cardState.description,
+             cardState.x + cardState.width/2,
+             cardState.y + 60);
     
-            image(currentImage,
-                cardState.x + cardState.width/2,
-                imageY,
-                imageSize, imageSize);
-        
+        // Draw buttons
+        if (cardState.buttons) {
+            // OK button
+            fill(200);
+            rect(cardState.buttons[0].x, cardState.buttons[0].y,
+                 cardState.buttons[0].width, cardState.buttons[0].height);
             fill(0);
-            textAlign(CENTER, TOP);
-            textSize(20);
-            text(cardState.name,
-                cardState.x + cardState.width / 2,
-                imageY + imageSize/2 + padding);
+            textAlign(CENTER, CENTER);
+            text("OK",
+                 cardState.buttons[0].x + cardState.buttons[0].width/2,
+                 cardState.buttons[0].y + cardState.buttons[0].height/2);
     
-             
-            textSize(16);
-            textAlign(CENTER, TOP);
-            textWrap(WORD);
-
-            text(cardState.description,
-                cardState.x + padding,
-                imageY + imageSize/2 + padding + textYOffset,
-                cardState.width - 2 * padding);
-            }
+            // Decline button
+            fill(200);
+            rect(cardState.buttons[1].x, cardState.buttons[1].y,
+                 cardState.buttons[1].width, cardState.buttons[1].height);
+            fill(0);
+            textAlign(CENTER, CENTER);
+            text("Decline",
+                 cardState.buttons[1].x + cardState.buttons[1].width/2,
+                 cardState.buttons[1].y + cardState.buttons[1].height/2);
+        }
+    
+        pop(); // Restore drawing context
     }
+    
 
 
     drawCardButtons(buttonStates) {
@@ -173,6 +187,19 @@ class DrawManager {
                  button.x + button.width/2,
                  button.y + button.height/2);
         });
+    }
+}
+function getCardImage(cardName) {
+    // You would implement a mapping of card names to loaded images
+    // For now, return a default image
+    switch(cardName.toLowerCase()) {
+        case 'polymorph': return polymorphImage;
+        case 'onslaught': return onslaughtImage;
+        case 'bizarremutation': return mutationImage;
+        case 'draught': return draughtImage;
+        case 'telekinesis': return telekinesisImage;
+        case 'topsyturvy': return topsyturvyImage;
+        default: return cardImage;
     }
 }
 

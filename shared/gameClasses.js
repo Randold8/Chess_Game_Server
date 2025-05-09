@@ -17,7 +17,13 @@
             this.occupyingPiece = null;
             this.board = board;
         }
-
+        clone() {
+            const newTile = new Tile(this.x, this.y, null); // Board reference is reset
+            newTile.type = this.type;
+            newTile.state = this.state;
+            // Don't clone occupyingPiece here; set up in board.clone
+            return newTile;
+        }
         occupy(piece) {
             if (this.occupyingPiece) {
                 throw new Error(`Tile at ${this.x},${this.y} is already occupied`);
@@ -44,6 +50,25 @@
 
         addPiece(piece) {
             this.pieces.push(piece);
+        }
+        clone() {
+            // Create new board
+            const newBoard = new Board(this.width, this.height);
+            // Clone tiles
+            newBoard.tiles = this.tiles.map(tile => tile.clone());
+            // Clone pieces
+            newBoard.pieces = this.pieces.map(piece => piece.clone());
+            // Wire up piece.currentTile and tile.occupyingPiece
+            for (let i = 0; i < newBoard.pieces.length; i++) {
+                const origPiece = this.pieces[i];
+                const newPiece = newBoard.pieces[i];
+                const origTileIndex = this.tiles.indexOf(origPiece.currentTile);
+                if (origTileIndex !== -1) {
+                    newPiece.currentTile = newBoard.tiles[origTileIndex];
+                    newBoard.tiles[origTileIndex].occupyingPiece = newPiece;
+                }
+            }
+            return newBoard;
         }
 
         transformPiece(piece, newPieceName) {
@@ -140,6 +165,14 @@
             this.currentTile = tile;
             tile.occupy(this);
         }
+        clone() {
+            const newPiece = Piece.createPiece(this.name, this.color);
+            newPiece.hasMoved = this.hasMoved;
+            newPiece.hasDoubleMoved = this.hasDoubleMoved;
+            newPiece.state = this.state;
+            // currentTile to be linked in Board.clone
+            return newPiece;
+        }
 
         createCaptureResult(isValid, capturedPieces = []) {
             return {
@@ -164,17 +197,32 @@
             return true;
         }
 
-        isValidMove(targetTile, board) {
-            const logic = PieceLogic[this.name.toLowerCase()];
-            if (!logic) return false;
-            return logic.isValidMove(this, targetTile, board);
-        }
+        
+isValidMove(targetTile, board) {
+    // Check if we have alternate movement logic to use first
+    if (this.stats && this.stats.canAltMove && typeof this.isValidAltMove === 'function') {
+        const altMoveResult = this.isValidAltMove(targetTile, board);
+        if (altMoveResult) return true;
+    }
 
-        isValidCapture(targetTile, board) {
-            const logic = PieceLogic[this.name.toLowerCase()];
-            if (!logic) return { isValid: false, capturedPieces: [] };
-            return logic.isValidCapture(this, targetTile, board);
-        }
+    // Otherwise use standard piece logic
+    const logic = PieceLogic[this.name.toLowerCase()];
+    if (!logic) return false;
+    return logic.isValidMove(this, targetTile, board);
+}
+
+isValidCapture(targetTile, board) {
+    // Check if we have alternate capture logic to use first
+    if (this.stats && this.stats.canAltCapture && typeof this.isValidAltCapture === 'function') {
+        const altCaptureResult = this.isValidAltCapture(targetTile, board);
+        if (altCaptureResult.isValid) return altCaptureResult;
+    }
+
+    // Otherwise use standard piece logic
+    const logic = PieceLogic[this.name.toLowerCase()];
+    if (!logic) return { isValid: false, capturedPieces: [] };
+    return logic.isValidCapture(this, targetTile, board);
+}
 
         isValidAltMove(targetTile, board) {
             return false;

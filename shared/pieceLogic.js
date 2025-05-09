@@ -126,22 +126,32 @@
                 return Math.abs(dx) === 1 && dy === direction;
             },
             isValidCapture: function(piece, targetTile, board) {
+                // For jumper captures, the target tile must be empty
                 if (targetTile.occupyingPiece) return { isValid: false, capturedPieces: [] };
+        
                 const dx = targetTile.x - piece.currentTile.x;
                 const dy = targetTile.y - piece.currentTile.y;
+        
+                // Must move exactly two squares diagonally
                 if (Math.abs(dx) !== 2 || Math.abs(dy) !== 2) {
                     return { isValid: false, capturedPieces: [] };
                 }
+        
+                // Calculate the position of the piece being jumped over
                 const midX = piece.currentTile.x + dx/2;
                 const midY = piece.currentTile.y + dy/2;
+        
+                // Check the piece being jumped over
                 const jumpedTile = board.getTileAt(midX, midY);
                 if (!jumpedTile || !jumpedTile.occupyingPiece ||
                     jumpedTile.occupyingPiece.color === piece.color) {
                     return { isValid: false, capturedPieces: [] };
                 }
+        
                 return { isValid: true, capturedPieces: [jumpedTile.occupyingPiece] };
             }
         },
+        
         ogre: {
             isValidMove: function(piece, targetTile, board) {
                 if (targetTile.occupyingPiece) return false;

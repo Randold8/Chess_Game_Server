@@ -4,15 +4,22 @@ class Pawn extends window.Piece {
     }
 
     isValidMove(targetTile, board) {
+        // First check if we should use alternate movement
+        if (this.stats && this.stats.canAltMove) {
+            const altMoveResult = this.isValidAltMove(targetTile, board);
+            if (altMoveResult) return true;
+        }
+
+        // Otherwise use standard movement
         const direction = this.color === 'white' ? -1 : 1;
-    
+
         // Basic one square forward movement
         if (targetTile.x === this.currentTile.x &&
             targetTile.y === this.currentTile.y + direction &&
             !targetTile.occupyingPiece) {
             return true;
         }
-    
+
         // Initial two square movement - only if the pawn hasn't moved yet
         if (!this.hasMoved &&
             targetTile.x === this.currentTile.x &&
@@ -21,11 +28,18 @@ class Pawn extends window.Piece {
             !board.getTileAt(this.currentTile.x, this.currentTile.y + direction).occupyingPiece) {
             return true;
         }
-    
+
         return false;
     }
 
     isValidCapture(targetTile, board) {
+        // First check if we should use alternate capture
+        if (this.stats && this.stats.canAltCapture) {
+            const altCaptureResult = this.isValidAltCapture(targetTile, board);
+            if (altCaptureResult.isValid) return altCaptureResult;
+        }
+
+        // Otherwise use standard capture
         const direction = this.color === 'white' ? -1 : 1;
         const isDiagonal = Math.abs(targetTile.x - this.currentTile.x) === 1 &&
                           targetTile.y === this.currentTile.y + direction;
@@ -35,22 +49,32 @@ class Pawn extends window.Piece {
             targetTile.occupyingPiece.color !== this.color) {
             return this.createCaptureResult(true, [targetTile.occupyingPiece]);
         }
-        if (isDiagonal && 
-            !targetTile.occupyingPiece && 
-            board.getTileAt(targetTile.x, (targetTile.y)-direction).occupyingPiece && 
-            board.getTileAt(targetTile.x, (targetTile.y)-direction).occupyingPiece.hasDoubleMoved){
-                return this.createCaptureResult(true, [board.getTileAt(targetTile.x, (targetTile.y)-direction).occupyingPiece]);
-        }
 
+        // En passant capture
+        if (isDiagonal &&
+            !targetTile.occupyingPiece) {
+            // Check for en passant
+            const passantTile = board.getTileAt(targetTile.x, this.currentTile.y);
+            if (passantTile &&
+                passantTile.occupyingPiece &&
+                passantTile.occupyingPiece.name === 'pawn' &&
+                passantTile.occupyingPiece.color !== this.color &&
+                passantTile.occupyingPiece.hasDoubleMoved) {
+                return this.createCaptureResult(true, [passantTile.occupyingPiece]);
+            }
+        }
 
         return this.createCaptureResult(false);
     }
+
     isValidAltMove(targetTile, board) {
+        // Default implementation - override in special cases
         return false;
     }
 
     isValidAltCapture(targetTile, board) {
-        return false;
+        // Default implementation - override in special cases
+        return this.createCaptureResult(false);
     }
 }
 window.Piece.registerPieceType('pawn', Pawn);
@@ -268,6 +292,7 @@ class Jumper extends window.Piece {
     }
 
     isValidCapture(targetTile, board) {
+        // For jumper captures, the target tile must be empty
         if (targetTile.occupyingPiece) return this.createCaptureResult(false);
 
         const dx = targetTile.x - this.currentTile.x;
@@ -278,7 +303,7 @@ class Jumper extends window.Piece {
             return this.createCaptureResult(false);
         }
 
-        // Direction check (can capture in both directions unlike regular moves)
+        // Calculate the position of the piece being jumped over
         const midX = this.currentTile.x + dx/2;
         const midY = this.currentTile.y + dy/2;
 
@@ -291,12 +316,13 @@ class Jumper extends window.Piece {
 
         return this.createCaptureResult(true, [jumpedTile.occupyingPiece]);
     }
+
     isValidAltMove(targetTile, board) {
         return false;
     }
 
     isValidAltCapture(targetTile, board) {
-        return false;
+        return this.createCaptureResult(false);
     }
 }
 window.Piece.registerPieceType('jumper', Jumper);

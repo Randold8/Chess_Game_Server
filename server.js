@@ -8,6 +8,10 @@ const path = require('path');
 const Utils = require('./shared/utils');
 const { Board, Tile, Piece } = require('./shared/gameClasses');
 const { PieceLogic } = require('./shared/pieceLogic');
+const CardEffect = require('./cardEffects');
+
+// Add a check to verify it's loaded:
+console.log("CardEffect loaded:", !!CardEffect, "Methods:", Object.keys(CardEffect).join(", "));
 
 // Проверяем, что все необходимые компоненты загружены
 console.log('Loaded components:', {
@@ -35,20 +39,51 @@ class GameRoom {
     constructor(id) {
         this.id = id;
         this.players = new Map();
-
-        // Создаем доску
-        try {
-            this.board = new Board();
-            console.log('Board created successfully');
-        } catch (e) {
-            console.error('Error creating board:', e);
-        }
-
+        this.board = new Board();
         this.turnNumber = 0;
         this.currentPlayer = 'white';
+
+        // Add card state tracking
+        this.cardPhase = 'normal';  // 'normal' or 'card-selection'
+        this.activeCardType = null; // Card type ID when in card-selection phase
+        this.cardOwner = null;      // Which player has an active card
+
+        this.cardDrawInterval = 2;  // Draw every 2 turns
+        this.playerCardCounters = {
+            'white': 0,
+            'black': 0
+        };
+
         this.setupInitialPosition();
     }
+    checkCardDraw() {
+        console.log(`Checking for card draw: player=${this.currentPlayer}, counter=${this.playerCardCounters[this.currentPlayer]}, interval=${this.cardDrawInterval}`);
+    
+        const counter = this.playerCardCounters[this.currentPlayer];
+        if (counter >= this.cardDrawInterval) {
+            // Reset counter
+            this.playerCardCounters[this.currentPlayer] = 0;
+    
+            // Draw card
+            this.drawCard();
+            return true;
+        } else {
+            // Increment counter
+            this.playerCardCounters[this.currentPlayer]++;
+            return false;
+        }
+    }
+    drawCard() {
+        // Select a random card type (1-6 for our defined cards)
+        const cardTypeId = Math.floor(Math.random() * 6) + 1;
 
+        // Set card phase
+        this.cardPhase = 'card-selection';
+        this.activeCardType = cardTypeId;
+        this.cardOwner = this.currentPlayer;
+
+        console.log(`Player ${this.currentPlayer} drew card type ${cardTypeId}`);
+    }
     setupInitialPosition() {
         const pieces = [
             // Black pieces
@@ -106,7 +141,10 @@ class GameRoom {
             status: 0x01,
             changes: changes,
             turnNumber: this.turnNumber,
-            currentPlayer: this.currentPlayer  // Добавляем текущего игрока
+            currentPlayer: this.currentPlayer,
+            cardPhase: this.cardPhase,
+            activeCardType: this.activeCardType,
+            cardOwner: this.cardOwner
         };
     }
 
@@ -136,7 +174,7 @@ class GameRoom {
     validateMove(data) {
         const actionType = data[0];
         console.log('Validating move:', data);
-
+    
         switch(actionType) {
             case 0x01: // Piece Movement
                 return this.validatePieceMove(data);
@@ -146,6 +184,8 @@ class GameRoom {
                 return true;
             case 0x04: // Request Resync
                 return true;
+            case 0x05: // Decline Card - ADD THIS CASE
+                return true;  // Always valid to decline a card
             default:
                 console.log('Unknown action type:', actionType);
                 return false;
@@ -202,39 +242,145 @@ class GameRoom {
         return false;
     }
     validateCardAction(data) {
-        // Здесь будет валидация действий карт
-        // Пока что возвращаем false
-        return false;
+        const selectionsCount = data[1];
+        const cardType = data[2];
+    
+        console.log(`Validating card action: type=${cardType}, selections=${selectionsCount}, phase=${this.cardPhase}, owner=${this.cardOwner}`);
+    
+        // Check if we're in card selection phase and the card type matches
+        if (this.cardPhase !== 'card-selection' ||
+            this.cardOwner !== this.currentPlayer ||
+            (this.activeCardType !== null && this.activeCardType !== cardType)) {
+            console.log(`Card validation failed: phase=${this.cardPhase}, owner=${this.cardOwner}, activeType=${this.activeCardType}`);
+            return false;
+        }
+    
+        // Parse selections
+    const selections = [];
+    for (let i = 0; i < selectionsCount; i++) {
+        selections.push(data[i + 3]); // Using i+3 for correct offset
     }
 
+    // Try the card effect with a *dry run* (on clone)
+    const dummyChanges = [];
+    const clonedBoard = this.board.clone();
+    const isValid = CardEffect.executeEffect(cardType, selections, clonedBoard, this.currentPlayer, dummyChanges);
+
+    console.log(`Card validation result: ${isValid}`);
+    return isValid;
+}
+
     executeMove(data) {
-        console.log('Executing move:', data);
-        const changes = [];
-        const actionType = data[0];
+        console.log(`Executing move, current player before: ${this.currentPlayer}`);
+    const changes = [];
+    const actionType = data[0];
 
-        switch(actionType) {
-            case 0x01: // Piece Movement
-                this.executePieceMove(data, changes);
-                break;
-            case 0x02: // Card Action
-                this.executeCardAction(data, changes);
-                break;
+    let cardActionExecuted = false;
+
+    switch(actionType) {
+        case 0x01: // Piece Movement
+            this.executePieceMove(data, changes);
+            break;
+        case 0x02: // Card Action
+            cardActionExecuted = this.executeCardAction(data, changes);
+            break;
+        case 0x05: // Decline Card - ADD THIS CASE
+            this.declineCard();
+            cardActionExecuted = true; // Count as "executed" so we change turns
+            break;
+    }
+    
+        // After executing the action
+        console.log(`Action executed, changes: ${changes.length}, cardAction=${actionType === 0x02}, success=${cardActionExecuted}`);
+    
+        // Update turn number and player UNLESS it's a card action that failed
+        if (actionType !== 0x02 || cardActionExecuted) {
+            this.turnNumber++;
+            this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
+            console.log(`Turn changed to: ${this.currentPlayer}`);
+    
+            // Check for card draw if turn changed
+            if (this.checkCardDraw()) {
+                console.log(`Player ${this.currentPlayer} drew a card`);
+            }
+        } else {
+            console.log("Card action failed, turn remains with:", this.currentPlayer);
         }
-
-        // Увеличиваем номер хода и меняем текущего игрока
-        this.turnNumber++;
-        this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
-
-        console.log('Turn changed to:', this.currentPlayer);
-
-        return {
+    
+        const response = {
             status: 0x01,
             changes: changes,
             turnNumber: this.turnNumber,
-            currentPlayer: this.currentPlayer  // Добавляем информацию о текущем игроке
+            currentPlayer: this.currentPlayer,
+            cardPhase: this.cardPhase,
+            activeCardType: this.activeCardType,
+            cardOwner: this.cardOwner
         };
+    
+        console.log(`Response prepared, currentPlayer: ${response.currentPlayer}, changes: ${response.changes.length}`);
+        return response;
     }
-
+    declineCard() {
+        console.log(`Player ${this.currentPlayer} declined their card`);
+        this.cardPhase = 'normal';
+        this.activeCardType = null;
+        this.cardOwner = null;
+    }
+    executeCardEffect(selections, changes) {
+        // We'll implement specific card effects here based on the selections
+        // For now, let's implement a simple example: moving a piece from the first selection to the second
+    
+        if (selections.length >= 2) {
+            const sourceTileId = selections[0];
+            const targetTileId = selections[1];
+    
+            const sourceCoords = this.idToTileCoords(sourceTileId);
+            const targetCoords = this.idToTileCoords(targetTileId);
+    
+            const sourceTile = this.board.getTileAt(sourceCoords.x, sourceCoords.y);
+            const targetTile = this.board.getTileAt(targetCoords.x, targetCoords.y);
+    
+            if (!sourceTile || !targetTile) {
+                console.error("Invalid tile coordinates for card effect");
+                return;
+            }
+    
+            const movingPiece = sourceTile.occupyingPiece;
+    
+            if (!movingPiece) {
+                console.error("No piece at source tile for card effect");
+                return;
+            }
+    
+            // If target tile has a piece, remove it
+            if (targetTile.occupyingPiece) {
+                targetTile.occupyingPiece.state = 'dead';
+                targetTile.clear();
+                changes.push({
+                    tileId: targetTileId,
+                    actionType: 0x01, // Remove Piece
+                    reason: 0x05 // Card Effect
+                });
+            }
+    
+            // Remove piece from source tile
+            sourceTile.clear();
+            changes.push({
+                tileId: sourceTileId,
+                actionType: 0x01, // Remove Piece
+                reason: 0x05 // Card Effect
+            });
+    
+            // Add piece to target tile
+            movingPiece.spawn(targetTile);
+            changes.push({
+                tileId: targetTileId,
+                actionType: 0x02, // Add Piece
+                parameter: this.getPieceParameter(movingPiece),
+                reason: 0x05 // Card Effect
+            });
+        }
+    }
     executePieceMove(data, changes) {
         const sourceTileId = data[1];
         const targetTileId = data[2];
@@ -302,9 +448,40 @@ class GameRoom {
         }
     }
 
+    
     executeCardAction(data, changes) {
-        // Реализация выполнения действий карт
-        console.log('Card action not implemented yet');
+        const selectionsCount = data[1];
+        const cardType = data[2];
+        const selections = [];
+    
+        console.log(`Card action received: type=${cardType}, selections=${selectionsCount}`);
+    
+        // Parse tile selections
+        for (let i = 0; i < selectionsCount; i++) {
+            selections.push(data[i + 3]); // Note: using i+3 for correct offset
+        }
+    
+        console.log(`Parsed selections: ${selections.join(',')}`);
+    
+        // Execute card effect
+        const success = CardEffect.executeEffect(cardType, selections, this.board, this.currentPlayer, changes);
+    
+        console.log(`Card effect execution ${success ? 'succeeded' : 'failed'}, changes: ${changes.length}`);
+    
+        // Reset card state if successful
+        if (success) {
+            this.cardPhase = 'normal';
+            this.activeCardType = null;
+            this.cardOwner = null;
+        }
+    
+        return success;
+    }
+    idToTileCoords(id) {
+        return {
+            x: id % 8,
+            y: Math.floor(id / 8)
+        };
     }
 
 }
@@ -349,25 +526,30 @@ io.sockets.on("connection", (socket) => {
     socket.on("move", (data) => {
         const room = Array.from(rooms.values())
             .find(r => r.players.has(socket.id));
-
+    
         if (!room || room.players.get(socket.id).color !== room.currentPlayer) {
             socket.emit("moveResponse", {status: 0x00}); // Invalid move
             return;
         }
-
+    
+        const actionType = data[0];
+        const playerColor = room.players.get(socket.id).color;
+    
+        console.log(`Received ${actionType === 0x01 ? 'move' : 'card action'} from ${playerColor}`);
+        console.log(`Raw data: [${Array.from(data).join(', ')}]`);
+    
         if (room.validateMove(data)) {
             const response = room.executeMove(data);
+    
+            console.log(`Response ready, broadcasting to room ${room.id}, players: ${room.players.size}`);
+            console.log(`Response changes: ${response.changes.length}, current player: ${response.currentPlayer}`);
+    
+            // Broadcast to ALL players in the room
             io.to(room.id).emit("moveResponse", response);
+            console.log(`Broadcast complete`);
         } else {
+            console.log("Move validation failed");
             socket.emit("moveResponse", {status: 0x00}); // Invalid move
-        }
-    });
-
-    socket.on("requestSync", () => {
-        const room = Array.from(rooms.values())
-            .find(r => r.players.has(socket.id));
-        if (room) {
-            socket.emit("syncResponse", room.getFullState());
         }
     });
 });
