@@ -35,11 +35,10 @@ class Card {
     this.currentStage = 0;
     this.cardTypeId = 0x00;
 
-    // Adjust drawing variables to ensure card is visible
-    this.x = 400; // Center of the board horizontally
-    this.y = 300; // Center of the board vertically
-    this.width = 200;
-    this.height = 300;
+this.x = 810; // Position next to graveyard
+this.y = 300; // Vertically centered
+this.width = 180; // Same width as graveyard
+this.height = 300;
     this.angle = 0;
     this.color = color(255, 245, 215); // Light cream color
 
@@ -478,20 +477,45 @@ class TopsyTurvyCard extends Card {
   constructor(board) {
     super(
       "Topsy Turvy",
-      "Pawn's capture and move abilities are reversed",
+      "Select pawns to permanently reverse their move/capture pattern.",
       board
     );
     this.stages = 1;
-    this.maxSelections = [1];
+    this.maxSelections = [8]; // Allow selecting up to 8 pawns
     this.initializeStages();
     this.cardTypeId = 0x06; // Unique ID for TopsyTurvy card
   }
-  determineSelectables() {}
 
-  
+  determineSelectables() {
+    this.selectableTiles.clear();
+    const pawns = this.getPiecesByType("pawn", "own");
+
+    // Filter out pawns that already have the effect
+    const selectablePawns = pawns.filter(pawn => !pawn.topsyTurvyActive);
+
+    selectablePawns.forEach(pawn => this.addSelectable(pawn));
+  }
+
+  isStageComplete() {
+    // Stage is complete as long as at least one pawn is selected
+    return this.selectedObjects.get(this.currentStage).size > 0;
+  }
+
+  execute() {
+    if (!this.isStageComplete() || this.currentStage < this.stages - 1) {
+        console.log('Card not ready to execute - no pawns selected');
+        return false;
+    }
+    return super.execute();
+  }
 
   checkRequirements() {
+    // Card is available if you have any pawns that don't already have the effect
     const pawns = this.getPiecesByType("pawn", "own");
-    return pawns.length > 0;
+    return pawns.some(pawn => !pawn.topsyTurvyActive);
   }
 }
+
+
+
+

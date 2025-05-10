@@ -88,9 +88,8 @@ function draw() {
     if (uiState.cardState) {
         drawManager.drawCard(uiState.cardState);
     }
-
-    if (uiState.buttonStates) {
-        drawManager.drawCardButtons(uiState.buttonStates);
+    if (uiState.gameOverState) {
+        drawManager.drawGameOver(uiState.gameOverState);
     }
     // Debug overlay for card state
     if (gameController && gameController.gameState) {

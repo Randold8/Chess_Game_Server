@@ -170,6 +170,52 @@
                 }
                 return { isValid: false, capturedPieces: [] };
             }
+        },
+        topsyTurvyPawn: {
+            // For server-side validation of Topsy-Turvy pawns
+            isValidMove: function(piece, targetTile, board) {
+                const direction = piece.color === 'white' ? -1 : 1;
+    
+                // Diagonal movement
+                const isDiagonal = Math.abs(targetTile.x - piece.currentTile.x) === 1 &&
+                                targetTile.y === piece.currentTile.y + direction;
+    
+                if (isDiagonal && !targetTile.occupyingPiece) {
+                    return true;
+                }
+    
+                // Two-square diagonal jump (if pawn hasn't moved yet)
+                const isDiagonal2 = !piece.hasMoved &&
+                            Math.abs(targetTile.x - piece.currentTile.x) === 2 &&
+                            targetTile.y === piece.currentTile.y + (2 * direction);
+    
+                if (isDiagonal2 && !targetTile.occupyingPiece) {
+                    // Check the intermediate tile
+                    const midX = (piece.currentTile.x + targetTile.x) / 2;
+                    const midY = piece.currentTile.y + direction;
+                    const midTile = board.getTileAt(midX, midY);
+    
+                    if (midTile && !midTile.occupyingPiece) {
+                        return true;
+                    }
+                }
+    
+                return false;
+            },
+    
+            isValidCapture: function(piece, targetTile, board) {
+                const direction = piece.color === 'white' ? -1 : 1;
+    
+                // Forward capture
+                if (targetTile.x === piece.currentTile.x &&
+                    targetTile.y === piece.currentTile.y + direction &&
+                    targetTile.occupyingPiece &&
+                    targetTile.occupyingPiece.color !== piece.color) {
+                    return { isValid: true, capturedPieces: [targetTile.occupyingPiece] };
+                }
+    
+                return { isValid: false, capturedPieces: [] };
+            }
         }
     };
 

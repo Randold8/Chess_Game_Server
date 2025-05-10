@@ -26,6 +26,27 @@ class DrawManager {
         this.tileSize = 800 / 8;
         this.pieceEmojis = PIECE_EMOJIS;
     }
+    drawGameOver(gameOverState) {
+        const winner = gameOverState.winner;
+
+        // Semi-transparent overlay
+        push();
+        fill(0, 0, 0, 150);
+        rect(0, 0, width, height);
+
+        // Game over message
+        textAlign(CENTER, CENTER);
+        textSize(48);
+        fill(255);
+        text("GAME OVER", width/2, height/2 - 50);
+
+        // Winner message
+        textSize(36);
+        const winnerText = winner.charAt(0).toUpperCase() + winner.slice(1);
+        fill(winner === 'white' ? color(255) : color(150));
+        text(`${winnerText} wins!`, width/2, height/2 + 30);
+        pop();
+    }
 
     drawBoard(boardState) {
         // Draw tiles
@@ -65,17 +86,51 @@ class DrawManager {
     }
 
     drawPiece(piece) {
-        if (piece.state !== 'alive') return;
-
-        fill(0);
+        if (piece.state !== 'alive' || !piece.currentTile) return;
+    
+        const tx = piece.currentTile.x * this.tileSize;
+        const ty = piece.currentTile.y * this.tileSize;
+        const centerX = tx + this.tileSize/2;
+        const centerY = ty + this.tileSize/2;
+    
+        // Determine color and animation for Topsy-Turvy pawns
+        let pawnFill = null;
+        if (piece.name === 'pawn' && piece.topsyTurvyActive) {
+            // Much slower pulse!
+            const t = (typeof frameCount !== "undefined" ? frameCount : Date.now()/16) * 0.02;
+            let r, g, b;
+            if (piece.color === "white") {
+                // Pink pulse for white pawn
+                r = 210 + 30 * Math.abs(Math.sin(t));
+                g = 60  + 10 * Math.abs(Math.sin(t));
+                b = 160 + 20 * Math.abs(Math.sin(t));
+            } else {
+                // Dark purple pulse for black pawn
+                r = 60  + 15 * Math.abs(Math.sin(t));   // lowered base and amplitude
+                g = 20  + 10 * Math.abs(Math.sin(t));   // lowered base and amplitude
+                b = 80  + 20 * Math.abs(Math.sin(t));   // darker blue-purple
+            }
+            pawnFill = color(r, g, b);
+        }
+    
+        // Draw the piece emoji/text
         textAlign(CENTER, CENTER);
         textSize(this.tileSize * 0.8);
+        if (pawnFill) {
+            fill(pawnFill);
+        } else {
+            fill(0); // Default: black
+        }
         text(
             this.pieceEmojis[piece.color][piece.name],
-            piece.currentTile.x * this.tileSize + this.tileSize/2,
-            piece.currentTile.y * this.tileSize + this.tileSize/2
+            centerX,
+            centerY
         );
     }
+    
+    
+    
+    
 
     drawDraggedPiece(piece, position) {
         if (!piece) return;
@@ -122,59 +177,112 @@ class DrawManager {
             return;
         }
     
+        // Fixed position for card on the right side
+        const cardX = 810;
+        const cardY = 200;
+        const cardWidth = 180;
+        const cardHeight = 300;
     
-        // Simple, reliable card drawing
         push(); // Save drawing context
     
         // Draw card background
         fill(245, 222, 179); // Wheat color
-        stroke(0);
-        strokeWeight(2);
-        rect(cardState.x, cardState.y, cardState.width, cardState.height, 10);
+        stroke(139, 69, 19); // Brown border
+        strokeWeight(3);
+        rect(cardX, cardY, cardWidth, cardHeight, 15); // Rounded corners
+    
+        // Try to draw card image if available
+        const cardImg = getCardImage(cardState.image);
+        if (cardImg) {
+            image(
+                cardImg,
+                cardX + 10,
+                cardY + 50,
+                cardWidth - 20,
+                120
+            );
+        }
     
         // Draw card name
-        fill(0);
+        fill(139, 69, 19); // Dark brown text
         noStroke();
         textSize(24);
         textAlign(CENTER, TOP);
-        text(cardState.name,
-             cardState.x + cardState.width/2,
-             cardState.y + 20);
+        text(
+            cardState.name,
+            cardX + cardWidth/2,
+            cardY + 15
+        );
     
         // Draw card description
         textSize(16);
         textAlign(CENTER, TOP);
-        text(cardState.description,
-             cardState.x + cardState.width/2,
-             cardState.y + 60);
+        textWrap(WORD);
+        text(
+            cardState.description,
+            cardX + 10,
+            cardY + 180,
+            cardWidth - 20
+        );
     
-        // Draw buttons
-        if (cardState.buttons) {
-            // OK button
-            fill(200);
-            rect(cardState.buttons[0].x, cardState.buttons[0].y,
-                 cardState.buttons[0].width, cardState.buttons[0].height);
-            fill(0);
-            textAlign(CENTER, CENTER);
-            text("OK",
-                 cardState.buttons[0].x + cardState.buttons[0].width/2,
-                 cardState.buttons[0].y + cardState.buttons[0].height/2);
+        // FIXED POSITIONS FOR BUTTONS
+        const okButtonX = cardX + 30;
+        const okButtonY = cardY + cardHeight - 40;
+        const declineButtonX = cardX + cardWidth - 90;
+        const declineButtonY = cardY + cardHeight - 40;
+        const buttonWidth = 60;
+        const buttonHeight = 30;
     
-            // Decline button
-            fill(200);
-            rect(cardState.buttons[1].x, cardState.buttons[1].y,
-                 cardState.buttons[1].width, cardState.buttons[1].height);
-            fill(0);
-            textAlign(CENTER, CENTER);
-            text("Decline",
-                 cardState.buttons[1].x + cardState.buttons[1].width/2,
-                 cardState.buttons[1].y + cardState.buttons[1].height/2);
-        }
+        // OK button
+        fill(100, 200, 100); // Green button
+        stroke(0);
+        strokeWeight(1);
+        rect(okButtonX, okButtonY, buttonWidth, buttonHeight, 5);
+    
+        fill(0);
+        noStroke();
+        textSize(12); // VERY SMALL FONT SIZE
+        textAlign(CENTER, CENTER);
+        text(
+            "OK",
+            okButtonX + buttonWidth/2,
+            okButtonY + buttonHeight/2
+        );
+    
+        // Decline button
+        fill(200, 100, 100); // Red button
+        stroke(0);
+        strokeWeight(1);
+        rect(declineButtonX, declineButtonY, buttonWidth, buttonHeight, 5);
+    
+        fill(0);
+        noStroke();
+        textSize(12); // VERY SMALL FONT SIZE
+        textAlign(CENTER, CENTER);
+        text(
+            "Decline",
+            declineButtonX + buttonWidth/2,
+            declineButtonY + buttonHeight/2
+        );
     
         pop(); // Restore drawing context
-    }
     
-
+        // Update global coordinates for button detection
+        window.cardButtonPositions = {
+            okButton: {
+                x: okButtonX,
+                y: okButtonY,
+                width: buttonWidth,
+                height: buttonHeight
+            },
+            declineButton: {
+                x: declineButtonX,
+                y: declineButtonY,
+                width: buttonWidth,
+                height: buttonHeight
+            }
+        };
+    }
 
     drawCardButtons(buttonStates) {
         buttonStates.forEach(button => {
@@ -189,18 +297,25 @@ class DrawManager {
         });
     }
 }
-function getCardImage(cardName) {
-    // You would implement a mapping of card names to loaded images
-    // For now, return a default image
-    switch(cardName.toLowerCase()) {
-        case 'polymorph': return polymorphImage;
-        case 'onslaught': return onslaughtImage;
-        case 'bizarremutation': return mutationImage;
-        case 'draught': return draughtImage;
-        case 'telekinesis': return telekinesisImage;
-        case 'topsyturvy': return topsyturvyImage;
-        default: return cardImage;
+function getCardImage(imageName) {
+    if (!imageName || !window.cardImages) {
+        return window.cardImages?.default || null;
     }
+
+    // Convert to lowercase and remove spaces
+    const normalizedName = imageName.toLowerCase().replace(/\s+/g, "");
+
+    // Try to find the image
+    const img = window.cardImages[normalizedName];
+
+    // For debugging
+    if (!img) {
+        console.log(`Card image not found: ${normalizedName}`);
+        console.log('Available images:', Object.keys(window.cardImages));
+    }
+
+    return img || window.cardImages.default;
 }
+
 
 

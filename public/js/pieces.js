@@ -1,13 +1,13 @@
 class Pawn extends window.Piece {
     constructor(color) {
         super('pawn', color);
+        this.topsyTurvyActive = false; // Initialize the flag
     }
 
     isValidMove(targetTile, board) {
-        // First check if we should use alternate movement
-        if (this.stats && this.stats.canAltMove) {
-            const altMoveResult = this.isValidAltMove(targetTile, board);
-            if (altMoveResult) return true;
+        // If this pawn has the Topsy-Turvy effect, use alternate movement logic
+        if (this.topsyTurvyActive) {
+            return this.isValidAltMove(targetTile, board);
         }
 
         // Otherwise use standard movement
@@ -33,10 +33,9 @@ class Pawn extends window.Piece {
     }
 
     isValidCapture(targetTile, board) {
-        // First check if we should use alternate capture
-        if (this.stats && this.stats.canAltCapture) {
-            const altCaptureResult = this.isValidAltCapture(targetTile, board);
-            if (altCaptureResult.isValid) return altCaptureResult;
+        // If this pawn has the Topsy-Turvy effect, use alternate capture logic
+        if (this.topsyTurvyActive) {
+            return this.isValidAltCapture(targetTile, board);
         }
 
         // Otherwise use standard capture
@@ -68,15 +67,52 @@ class Pawn extends window.Piece {
     }
 
     isValidAltMove(targetTile, board) {
-        // Default implementation - override in special cases
+        const direction = this.color === 'white' ? -1 : 1;
+
+        // For Topsy-Turvy: Move diagonally, capture forward
+        const isDiagonal = Math.abs(targetTile.x - this.currentTile.x) === 1 &&
+                    targetTile.y === this.currentTile.y + direction;
+
+        // Two-square diagonal jump (if pawn hasn't moved yet)
+        const isDiagonal2 = !this.hasMoved &&
+                    Math.abs(targetTile.x - this.currentTile.x) === 2 &&
+                    targetTile.y === this.currentTile.y + (2 * direction);
+
+        if (isDiagonal && !targetTile.occupyingPiece) {
+            return true;
+        }
+
+        // Two-square diagonal jump - need to check the path is clear
+        if (isDiagonal2 && !targetTile.occupyingPiece) {
+            // Check the intermediate tile
+            const midX = (this.currentTile.x + targetTile.x) / 2;
+            const midY = this.currentTile.y + direction;
+            const midTile = board.getTileAt(midX, midY);
+
+            if (midTile && !midTile.occupyingPiece) {
+                return true;
+            }
+        }
+
         return false;
     }
 
     isValidAltCapture(targetTile, board) {
-        // Default implementation - override in special cases
-        return this.createCaptureResult(false);
+        const direction = this.color === 'white' ? -1 : 1;
+
+        // For Topsy-Turvy: Capture straight forward
+        if (targetTile.x === this.currentTile.x &&
+            targetTile.y === this.currentTile.y + direction &&
+            targetTile.occupyingPiece &&
+            targetTile.occupyingPiece.color !== this.color) {
+            return this.createCaptureResult(true, [targetTile.occupyingPiece]);
+        }
+
+        return this.createCaptureResult(false, []);
     }
 }
+window.Piece.registerPieceType('pawn', Pawn);
+
 window.Piece.registerPieceType('pawn', Pawn);
 
 class Rook extends window.Piece {

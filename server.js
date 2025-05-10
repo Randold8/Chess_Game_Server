@@ -42,19 +42,46 @@ class GameRoom {
         this.board = new Board();
         this.turnNumber = 0;
         this.currentPlayer = 'white';
-
+        this.gameOver = false;
+    this.winner = null;
         // Add card state tracking
-        this.cardPhase = 'normal';  // 'normal' or 'card-selection'
-        this.activeCardType = null; // Card type ID when in card-selection phase
-        this.cardOwner = null;      // Which player has an active card
-
+        this.cardPhase = 'normal';
+        this.activeCardType = null;
+        this.cardOwner = null;
+    
         this.cardDrawInterval = 2;  // Draw every 2 turns
         this.playerCardCounters = {
             'white': 0,
             'black': 0
         };
-
+    
+        // Initialize Topsy-Turvy tracking
+        this.topsyTurvyPawns = [];
+    
         this.setupInitialPosition();
+    }
+    checkGameOver() {
+        // Check if white king is alive
+        const whiteKing = this.board.pieces.find(p => p.name === 'king' && p.color === 'white' && p.state === 'alive');
+    
+        // Check if black king is alive
+        const blackKing = this.board.pieces.find(p => p.name === 'king' && p.color === 'black' && p.state === 'alive');
+    
+        if (!whiteKing) {
+            this.gameOver = true;
+            this.winner = 'black';
+            console.log('Game over! Black wins by capturing white king');
+            return true;
+        }
+    
+        if (!blackKing) {
+            this.gameOver = true;
+            this.winner = 'white';
+            console.log('Game over! White wins by capturing black king');
+            return true;
+        }
+    
+        return false;
     }
     checkCardDraw() {
         console.log(`Checking for card draw: player=${this.currentPlayer}, counter=${this.playerCardCounters[this.currentPlayer]}, interval=${this.cardDrawInterval}`);
@@ -136,7 +163,7 @@ class GameRoom {
                 });
             }
         });
-
+    
         return {
             status: 0x01,
             changes: changes,
@@ -144,9 +171,13 @@ class GameRoom {
             currentPlayer: this.currentPlayer,
             cardPhase: this.cardPhase,
             activeCardType: this.activeCardType,
-            cardOwner: this.cardOwner
+            cardOwner: this.cardOwner,
+            topsyTurvyPawns: this.topsyTurvyPawns || [],
+            gameOver: this.gameOver,
+            winner: this.winner
         };
     }
+    
 
     getPieceParameter(piece) {
         const pieceTypes = {
@@ -195,50 +226,152 @@ class GameRoom {
     validatePieceMove(data) {
         const sourceTileId = data[1];
         const targetTileId = data[2];
-
+    
         const sourceX = sourceTileId % 8;
         const sourceY = Math.floor(sourceTileId / 8);
         const targetX = targetTileId % 8;
         const targetY = Math.floor(targetTileId / 8);
-
+    
         console.log('Validating move:', {
             from: {x: sourceX, y: sourceY},
             to: {x: targetX, y: targetY}
         });
-
+    
         const sourceTile = this.board.getTileAt(sourceX, sourceY);
         const targetTile = this.board.getTileAt(targetX, targetY);
-
+    
         if (!sourceTile || !targetTile) {
             console.log('Invalid tile coordinates');
             return false;
         }
-
+    
         const piece = sourceTile.occupyingPiece;
         if (!piece) {
             console.log('No piece at source tile');
             return false;
         }
-
+    
         if (piece.color !== this.currentPlayer) {
             console.log('Not this player\'s turn');
             return false;
         }
-
-        // Сначала проверяем возможность взятия
+    
+        // Check if this pawn has the Topsy-Turvy effect
+        const isTopsyTurvyPawn = piece.name === 'pawn' &&
+                                this.topsyTurvyPawns &&
+                                this.topsyTurvyPawns.includes(sourceTileId);
+    
+        // For Topsy-Turvy pawns, use special validation logic
+        if (isTopsyTurvyPawn) {
+            console.log('Validating Topsy-Turvy pawn move');
+            const direction = piece.color === 'white' ? -1 : 1;
+    
+            // ===== MOVE VALIDATION =====
+            // For moves, the target must be empty
+            if (!targetTile.occupyingPiece) {
+                // Diagonal movement (1 square)
+                const isDiagonal = Math.abs(targetX - sourceX) === 1 &&
+                                targetY === sourceY + direction;
+    
+                if (isDiagonal) {
+                    console.log('Valid Topsy-Turvy diagonal move');
+                    return true;
+                }
+    
+                // Double diagonal move (if first move)
+                if (!piece.hasMoved) {
+                    const isDiagonal2 = Math.abs(targetX - sourceX) === 2 &&
+                                    targetY === sourceY + (2 * direction);
+    
+                    if (isDiagonal2) {
+                        // Check intermediate square is clear
+                        const midX = Math.floor((sourceX + targetX) / 2);
+                        const midY = sourceY + direction;
+                        const midTile = this.board.getTileAt(midX, midY);
+    
+                        if (midTile && !midTile.occupyingPiece) {
+                            console.log('Valid Topsy-Turvy double diagonal move');
+                            return true;
+                        }
+                    }
+                }
+            }
+            // ===== CAPTURE VALIDATION =====
+            // For captures, target must contain enemy piece
+            else if (targetTile.occupyingPiece &&
+                    targetTile.occupyingPiece.color !== piece.color) {
+    
+                // Forward capture (straight ahead)
+                const isForward = targetX === sourceX &&
+                                targetY === sourceY + direction;
+    
+                if (isForward) {
+                    console.log('Valid Topsy-Turvy forward capture');
+                    return true;
+                }
+            }
+    
+            console.log('Invalid Topsy-Turvy move');
+            return false;
+        }
+    
+        // Normal validation for regular pieces
+        // First check for captures
         const captureResult = piece.isValidCapture(targetTile, this.board);
         if (captureResult.isValid) {
             console.log('Valid capture move');
             return true;
         }
-
-        // Затем проверяем возможность обычного хода
+    
+        // Then check for normal moves
         if (piece.isValidMove(targetTile, this.board)) {
             console.log('Valid normal move');
             return true;
         }
-
+    
         console.log('Invalid move');
+        return false;
+    }
+    validateTopsyTurvyMove(piece, sourceTile, targetTile) {
+        const direction = piece.color === 'white' ? -1 : 1;
+    
+        // MOVE: Diagonal movement (1 or 2 squares if first move)
+        if (!targetTile.occupyingPiece) {
+            // Single diagonal move
+            const isDiagonal = Math.abs(targetTile.x - sourceTile.x) === 1 &&
+                            targetTile.y === sourceTile.y + direction;
+            if (isDiagonal) {
+                console.log('Valid Topsy-Turvy diagonal move');
+                return true;
+            }
+    
+            // Double diagonal move (first move only)
+            const isDiagonal2 = !piece.hasMoved &&
+                        Math.abs(targetTile.x - sourceTile.x) === 2 &&
+                        targetTile.y === sourceTile.y + (2 * direction);
+            if (isDiagonal2) {
+                // Check the path is clear
+                const midX = (sourceTile.x + targetTile.x) / 2;
+                const midY = sourceTile.y + direction;
+                const midTile = this.board.getTileAt(midX, midY);
+                if (midTile && !midTile.occupyingPiece) {
+                    console.log('Valid Topsy-Turvy double diagonal move');
+                    return true;
+                }
+            }
+        }
+    
+        // CAPTURE: Forward capture
+        if (targetTile.occupyingPiece && targetTile.occupyingPiece.color !== piece.color) {
+            const isForward = targetTile.x === sourceTile.x &&
+                            targetTile.y === sourceTile.y + direction;
+            if (isForward) {
+                console.log('Valid Topsy-Turvy forward capture');
+                return true;
+            }
+        }
+    
+        console.log('Invalid Topsy-Turvy move');
         return false;
     }
     validateCardAction(data) {
@@ -270,12 +403,22 @@ class GameRoom {
     return isValid;
 }
 
-    executeMove(data) {
-        console.log(`Executing move, current player before: ${this.currentPlayer}`);
+executeMove(data) {
+    console.log(`Executing move, current player before: ${this.currentPlayer}`);
     const changes = [];
     const actionType = data[0];
 
     let cardActionExecuted = false;
+
+    if (this.gameOver) {
+        console.log("Game is already over, ignoring move");
+        return {
+            status: 0x01,
+            changes: [],
+            gameOver: this.gameOver,
+            winner: this.winner
+        };
+    }
 
     switch(actionType) {
         case 0x01: // Piece Movement
@@ -284,42 +427,50 @@ class GameRoom {
         case 0x02: // Card Action
             cardActionExecuted = this.executeCardAction(data, changes);
             break;
-        case 0x05: // Decline Card - ADD THIS CASE
+        case 0x05: // Decline Card
             this.declineCard();
-            cardActionExecuted = true; // Count as "executed" so we change turns
+            cardActionExecuted = true;
             break;
     }
-    
-        // After executing the action
-        console.log(`Action executed, changes: ${changes.length}, cardAction=${actionType === 0x02}, success=${cardActionExecuted}`);
-    
-        // Update turn number and player UNLESS it's a card action that failed
-        if (actionType !== 0x02 || cardActionExecuted) {
-            this.turnNumber++;
-            this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
-            console.log(`Turn changed to: ${this.currentPlayer}`);
-    
-            // Check for card draw if turn changed
-            if (this.checkCardDraw()) {
-                console.log(`Player ${this.currentPlayer} drew a card`);
-            }
-        } else {
-            console.log("Card action failed, turn remains with:", this.currentPlayer);
+
+    // Check for game over after move execution
+    this.checkGameOver();
+
+    // After executing the action
+    console.log(`Action executed, changes: ${changes.length}, cardAction=${actionType === 0x02}, success=${cardActionExecuted}`);
+
+    // Update turn number and player UNLESS it's a card action that failed or game is over
+    if (!this.gameOver && (actionType !== 0x02 || cardActionExecuted)) {
+        this.turnNumber++;
+        this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
+        console.log(`Turn changed to: ${this.currentPlayer}`);
+
+        // Check for card draw if turn changed
+        if (this.checkCardDraw()) {
+            console.log(`Player ${this.currentPlayer} drew a card`);
         }
-    
-        const response = {
-            status: 0x01,
-            changes: changes,
-            turnNumber: this.turnNumber,
-            currentPlayer: this.currentPlayer,
-            cardPhase: this.cardPhase,
-            activeCardType: this.activeCardType,
-            cardOwner: this.cardOwner
-        };
-    
-        console.log(`Response prepared, currentPlayer: ${response.currentPlayer}, changes: ${response.changes.length}`);
-        return response;
+    } else if (this.gameOver) {
+        console.log(`Game over! ${this.winner} wins!`);
+    } else {
+        console.log("Card action failed, turn remains with:", this.currentPlayer);
     }
+
+    const response = {
+        status: 0x01,
+        changes: changes,
+        turnNumber: this.turnNumber,
+        currentPlayer: this.currentPlayer,
+        cardPhase: this.cardPhase,
+        activeCardType: this.activeCardType,
+        cardOwner: this.cardOwner,
+        topsyTurvyPawns: this.topsyTurvyPawns || [],
+        gameOver: this.gameOver,
+        winner: this.winner
+    };
+
+    console.log(`Response prepared, currentPlayer: ${response.currentPlayer}, changes: ${response.changes.length}, gameOver: ${response.gameOver}`);
+    return response;
+}
     declineCard() {
         console.log(`Player ${this.currentPlayer} declined their card`);
         this.cardPhase = 'normal';
@@ -384,21 +535,60 @@ class GameRoom {
     executePieceMove(data, changes) {
         const sourceTileId = data[1];
         const targetTileId = data[2];
-
+    
         const sourceX = sourceTileId % 8;
         const sourceY = Math.floor(sourceTileId / 8);
         const targetX = targetTileId % 8;
         const targetY = Math.floor(targetTileId / 8);
-
+    
         console.log('Moving piece from', {x: sourceX, y: sourceY}, 'to', {x: targetX, y: targetY});
-
+    
         const sourceTile = this.board.getTileAt(sourceX, sourceY);
         const targetTile = this.board.getTileAt(targetX, targetY);
         const movingPiece = sourceTile.occupyingPiece;
         const capturedPiece = targetTile.occupyingPiece;
-
+    
         try {
-            // 1. Если есть фигура на целевой клетке, помечаем её как взятую
+            // Check if this was a Topsy-Turvy pawn
+            const isTopsyTurvyPawn = movingPiece.name === 'pawn' &&
+                                    this.topsyTurvyPawns &&
+                                    this.topsyTurvyPawns.includes(sourceTileId);
+    
+            // Special handling for jumper captures
+            let capturedByJumper = null;
+            if (movingPiece.name === 'jumper' && !capturedPiece) {
+                const dx = targetX - sourceX;
+                const dy = targetY - sourceY;
+    
+                // Check if it's a diagonal jump of distance 2
+                if (Math.abs(dx) === 2 && Math.abs(dy) === 2) {
+                    // Calculate the position of the piece being jumped over
+                    const midX = sourceX + dx/2;
+                    const midY = sourceY + dy/2;
+    
+                    // Check the piece being jumped over
+                    const jumpedTile = this.board.getTileAt(midX, midY);
+                    if (jumpedTile && jumpedTile.occupyingPiece &&
+                        jumpedTile.occupyingPiece.color !== movingPiece.color) {
+    
+                        capturedByJumper = jumpedTile.occupyingPiece;
+                        const jumpedTileId = midY * 8 + midX;
+    
+                        // Mark the jumped piece as captured
+                        capturedByJumper.state = 'dead';
+                        jumpedTile.clear();
+                        changes.push({
+                            tileId: jumpedTileId,
+                            actionType: 0x01, // Remove Piece
+                            reason: 0x04  // Capture
+                        });
+    
+                        console.log('Jumper captured piece at:', {x: midX, y: midY});
+                    }
+                }
+            }
+    
+            // 1. If there's a piece on the target tile, mark it as captured
             if (capturedPiece) {
                 console.log('Capturing piece:', capturedPiece.name, capturedPiece.color);
                 capturedPiece.state = 'dead';
@@ -409,36 +599,46 @@ class GameRoom {
                     reason: 0x04 // Capture
                 });
             }
-
-            // 2. Очищаем исходную клетку
+    
+            // 2. Clear the source tile
             sourceTile.clear();
             changes.push({
                 tileId: sourceTileId,
                 actionType: 0x01, // Remove Piece
                 reason: 0x03 // Normal Movement
             });
-
-            // 3. Перемещаем фигуру на новую клетку
-    movingPiece.spawn(targetTile);
-    movingPiece.hasMoved = true; // Always set hasMoved when a piece moves
-
+    
+            // 3. Move the piece to the new tile
+            movingPiece.spawn(targetTile);
+            movingPiece.hasMoved = true; // Always set hasMoved when a piece moves
+    
             changes.push({
                 tileId: targetTileId,
                 actionType: 0x02, // Add Piece
                 parameter: this.getPieceParameter(movingPiece),
-                reason: capturedPiece ? 0x04 : 0x03 // Capture или Normal Movement
+                reason: (capturedPiece || capturedByJumper) ? 0x04 : 0x03 // Capture or Normal Movement
             });
-
-            // 4. Обновляем состояние фигуры
-            movingPiece.hasMoved = true;
+    
+            // 4. Update the Topsy-Turvy tracking if this was a Topsy-Turvy pawn
+            if (isTopsyTurvyPawn) {
+                console.log(`Updating Topsy-Turvy pawn tracking: ${sourceTileId} -> ${targetTileId}`);
+    
+                // Remove old tile ID and add new one
+                const index = this.topsyTurvyPawns.indexOf(sourceTileId);
+                if (index !== -1) {
+                    this.topsyTurvyPawns[index] = targetTileId;
+                }
+            }
+    
+            // 5. Update piece state
             if (movingPiece.name === 'pawn' && Math.abs(targetY - sourceY) === 2) {
                 movingPiece.hasDoubleMoved = true;
             }
-
+    
             console.log('Move executed successfully');
         } catch (error) {
             console.error('Error executing move:', error);
-            // Восстанавливаем исходное состояние в случае ошибки
+            // Restore original state in case of error
             if (capturedPiece) {
                 targetTile.occupy(capturedPiece);
                 capturedPiece.state = 'alive';
@@ -447,6 +647,8 @@ class GameRoom {
             throw error;
         }
     }
+    
+    
 
     
     executeCardAction(data, changes) {
@@ -473,10 +675,18 @@ class GameRoom {
             this.cardPhase = 'normal';
             this.activeCardType = null;
             this.cardOwner = null;
+    
+            // For Topsy Turvy (card type 6), store the affected pawns
+            if (cardType === 0x06) {
+                // Store the selected pawns in a property for later inclusion in state
+                this.topsyTurvyPawns = selections.slice();
+                console.log(`Stored ${this.topsyTurvyPawns.length} Topsy-Turvy pawn locations`);
+            }
         }
     
         return success;
     }
+    
     idToTileCoords(id) {
         return {
             x: id % 8,
@@ -527,7 +737,23 @@ io.sockets.on("connection", (socket) => {
         const room = Array.from(rooms.values())
             .find(r => r.players.has(socket.id));
     
-        if (!room || room.players.get(socket.id).color !== room.currentPlayer) {
+        if (!room) {
+            socket.emit("moveResponse", {status: 0x00}); // Invalid move
+            return;
+        }
+    
+        // If the game is over, return game over response
+        if (room.gameOver) {
+            socket.emit("moveResponse", {
+                status: 0x01,
+                gameOver: room.gameOver,
+                winner: room.winner,
+                message: `Game over! ${room.winner.charAt(0).toUpperCase() + room.winner.slice(1)} wins!`
+            });
+            return;
+        }
+    
+        if (room.players.get(socket.id).color !== room.currentPlayer) {
             socket.emit("moveResponse", {status: 0x00}); // Invalid move
             return;
         }
@@ -542,7 +768,7 @@ io.sockets.on("connection", (socket) => {
             const response = room.executeMove(data);
     
             console.log(`Response ready, broadcasting to room ${room.id}, players: ${room.players.size}`);
-            console.log(`Response changes: ${response.changes.length}, current player: ${response.currentPlayer}`);
+            console.log(`Response changes: ${response.changes.length}, current player: ${response.currentPlayer}, gameOver: ${response.gameOver}`);
     
             // Broadcast to ALL players in the room
             io.to(room.id).emit("moveResponse", response);

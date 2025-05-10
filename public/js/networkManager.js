@@ -6,7 +6,6 @@ class NetworkManager {
     this.roomId = null;
     this.lastSyncTurn = 0;
     this.pendingState = null; // Добавляем хранение отложенного состояния
-
     // Ждем готовности реестра фигур перед установкой обработчиков сокета
     window.Piece.onReady(() => {
       this.setupSocketHandlers();
@@ -182,66 +181,85 @@ tileToId(tile) {
     return id;
 }
 
-  applyServerState(state) {
-    console.log("Applying server state:", state);
-    console.log(`Changes: ${state.changes?.length || 0}, turnNumber: ${state.turnNumber}, player: ${state.currentPlayer}`);
-    this.lastSyncTurn = state.turnNumber;
+applyServerState(state) {
+  console.log("Applying server state:", state);
+  console.log(`Changes: ${state.changes?.length || 0}, turnNumber: ${state.turnNumber}, player: ${state.currentPlayer}`);
+  this.lastSyncTurn = state.turnNumber;
+  // Check for game over state first
+  if (state.gameOver) {
+    console.log(`Game Over! Winner: ${state.winner}`);
+    this.gameController.gameState.setGameOver(state.winner);
+}
 
-    // Apply changes in the correct order
-    const removeChanges = state.changes.filter(change => change.actionType === 0x01);
-    const addChanges = state.changes.filter(change => change.actionType === 0x02);
+  // Apply changes in the correct order
+  const removeChanges = state.changes.filter(change => change.actionType === 0x01);
+  const addChanges = state.changes.filter(change => change.actionType === 0x02);
 
-    console.log(`Remove changes: ${removeChanges.length}, add changes: ${addChanges.length}`);
+  // Track tiles that will receive TopsyTurvy pawns
+  const topsyTurvyTiles = new Set();
+  if (state.topsyTurvyPawns && Array.isArray(state.topsyTurvyPawns)) {
+      state.topsyTurvyPawns.forEach(tileId => topsyTurvyTiles.add(tileId));
+      console.log("TopsyTurvy pawns at tile IDs:", Array.from(topsyTurvyTiles));
+  }
 
-    // First perform all removals
-    removeChanges.forEach(change => {
-        const coords = this.idToTileCoords(change.tileId);
-        console.log(`Removing piece at: ${coords.x},${coords.y} (tileId: ${change.tileId})`);
-        const tile = this.gameController.board.getTileAt(coords.x, coords.y);
+  console.log(`Remove changes: ${removeChanges.length}, add changes: ${addChanges.length}`);
 
-        if (!tile) {
-            console.error("Invalid tile coordinates:", coords);
-            return;
-        }
+  // First perform all removals
+  removeChanges.forEach(change => {
+      const coords = this.idToTileCoords(change.tileId);
+      console.log(`Removing piece at: ${coords.x},${coords.y} (tileId: ${change.tileId})`);
+      const tile = this.gameController.board.getTileAt(coords.x, coords.y);
 
-        if (tile.occupyingPiece) {
-            console.log('Removing piece:', tile.occupyingPiece.name, tile.occupyingPiece.color);
-            tile.occupyingPiece.state = 'dead';
-            tile.clear();
-        }
-    });
+      if (!tile) {
+          console.error("Invalid tile coordinates:", coords);
+          return;
+      }
 
-    // Then perform all additions
-    addChanges.forEach(change => {
-        const coords = this.idToTileCoords(change.tileId);
-        console.log(`Adding piece at: ${coords.x},${coords.y} (tileId: ${change.tileId})`);
-        const tile = this.gameController.board.getTileAt(coords.x, coords.y);
+      if (tile.occupyingPiece) {
+          console.log('Removing piece:', tile.occupyingPiece.name, tile.occupyingPiece.color);
+          tile.occupyingPiece.state = 'dead';
+          tile.clear();
+      }
+  });
 
-        if (!tile) {
-            console.error("Invalid tile coordinates:", coords);
-            return;
-        }
+  // Then perform all additions
+  addChanges.forEach(change => {
+      const coords = this.idToTileCoords(change.tileId);
+      console.log(`Adding piece at: ${coords.x},${coords.y} (tileId: ${change.tileId})`);
+      const tile = this.gameController.board.getTileAt(coords.x, coords.y);
 
-        // Always clear the tile before adding a new piece to prevent duplicates
-        if (tile.occupyingPiece) {
-            tile.occupyingPiece.state = 'dead';
-            tile.clear();
-        }
+      if (!tile) {
+          console.error("Invalid tile coordinates:", coords);
+          return;
+      }
 
-        const newPiece = this.createPieceFromParameter(change.parameter);
-        if (newPiece) {
-            console.log('Adding new piece:', newPiece.name, newPiece.color);
-            newPiece.spawn(tile);
-            this.gameController.board.addPiece(newPiece);
-        }
-    });
+      // Always clear the tile before adding a new piece to prevent duplicates
+      if (tile.occupyingPiece) {
+          tile.occupyingPiece.state = 'dead';
+          tile.clear();
+      }
 
-    // Update game state
-    this.gameController.gameState.turnNumber = state.turnNumber;
-    this.gameController.gameState.currentPlayer = state.currentPlayer;
+      const newPiece = this.createPieceFromParameter(change.parameter);
+      if (newPiece) {
+          console.log('Adding new piece:', newPiece.name, newPiece.color);
 
-    // Handle card phase from server
-    if (state.cardPhase === 'card-selection' && state.activeCardType) {
+          // Check if this tile should have a TopsyTurvy pawn
+          if (newPiece.name === 'pawn' && topsyTurvyTiles.has(change.tileId)) {
+              console.log(`Making pawn at ${change.tileId} a TopsyTurvy pawn!`);
+              newPiece.topsyTurvyActive = true;
+          }
+
+          newPiece.spawn(tile);
+          this.gameController.board.addPiece(newPiece);
+      }
+  });
+
+  // Update game state
+  this.gameController.gameState.turnNumber = state.turnNumber;
+  this.gameController.gameState.currentPlayer = state.currentPlayer;
+
+  // Handle card phase from server
+  if (state.cardPhase === 'card-selection' && state.activeCardType) {
       console.log(`Server indicates card phase: ${state.cardPhase}, card type: ${state.activeCardType}, owner: ${state.cardOwner}`);
 
       // Only create card if it's our turn or we're the owner
@@ -270,6 +288,8 @@ tileToId(tile) {
 
   console.log("State applied, current player:", this.gameController.gameState.currentPlayer);
 }
+
+
 createCardFromType(cardTypeId) {
   console.log(`Creating card from type ID: ${cardTypeId}`);
   let CardClass;

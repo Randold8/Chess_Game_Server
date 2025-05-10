@@ -23,12 +23,13 @@ class GameController {
         const state = {
             dragState: null,
             cardState: null,
-            buttonStates: null
+            buttonStates: null,
+            gameOverState: null
         };
     
         // Only log periodically to avoid console spam
-        if (this._lastLogTime === undefined || Date.now() - this._lastLogTime > 1000) {
-            console.log(`getUIState - phase: ${this.gameState.phase}, card: ${this.gameState.currentCard?.name || 'none'}`);
+        if (this._lastLogTime === undefined || Date.now() - this._lastLogTime > 3000) {
+            console.log(`getUIState - phase: ${this.gameState.phase}, card: ${this.gameState.currentCard?.name || 'none'}, gameOver: ${this.gameState.gameOver}`);
             this._lastLogTime = Date.now();
         }
     
@@ -47,11 +48,20 @@ class GameController {
             state.cardState = this.gameState.currentCard.getState();
             state.buttonStates = state.cardState.buttons;
         }
+        if (this.gameState.gameOver) {
+            state.gameOverState = {
+                winner: this.gameState.winner
+            };
+        }
     
         return state;
     }
 
     mousePressed(mouseX, mouseY) {
+        if (this.gameState.gameOver) {
+            console.log('Game is over, ignoring input');
+            return;
+        }
         // Добавляем проверку и логирование
         console.log('Current player:', this.gameState.currentPlayer,
             'Player color:', this.gameState.playerColor,
@@ -113,6 +123,8 @@ class GameController {
     }
 
     mouseDragged(mouseX, mouseY) {
+        // Ignore input if game is over
+        if (this.gameState.gameOver) return;
         if (this.gameState.currentPlayer !== this.gameState.playerColor) {
             return;
         }
@@ -125,7 +137,9 @@ class GameController {
     }
 
     
-mouseReleased(mouseX, mouseY) {
+    mouseReleased(mouseX, mouseY) {
+        // Ignore input if game is over
+        if (this.gameState.gameOver) return;
     if (this.gameState.currentPlayer !== this.gameState.playerColor) {
         return;
     }

@@ -5,14 +5,21 @@ class GameState {
         this.currentPlayer = 'white';
         this.playerColor = null;
         this.turnNumber = 0;
-        this.cardDrawInterval = 2; // Draw every 3rd turn
-        this.cardDrawCounter = 0;  // Initialize counter
+        this.cardDrawInterval = 2;
+        this.cardDrawCounter = 0;
         this.currentCard = null;
         this.phase = 'normal';
         this.cardManager = new CardManager(board);
-    
-        // Debug log
-        console.log('GameState initialized with card draw interval:', this.cardDrawInterval);
+
+        // Add game over tracking
+        this.gameOver = false;
+        this.winner = null;
+    }
+    setGameOver(winner) {
+        this.gameOver = true;
+        this.winner = winner;
+        this.phase = 'game-over';
+        console.log(`Game over! ${winner} wins!`);
     }
 
     startTurn() {
@@ -27,15 +34,15 @@ class GameState {
     }
 
     handleCardSelection(tile) {
-        if (!this.currentCard || this.phase !== 'card-selection') return;
+        if (this.gameOver || !this.currentCard || this.phase !== 'card-selection') return;
 
         // If the tile has a piece, pass the piece. Otherwise, pass the tile itself
         const selectTarget = tile.occupyingPiece || tile;
         this.currentCard.toggleSelection(selectTarget);
     }
     
-handlePieceSelection(tile) {
-    if (this.phase !== 'normal') return;
+    handlePieceSelection(tile) {
+        if (this.gameOver || this.phase !== 'normal') return;
 
     // Reset all tile states first
     this.board.resetTileStates();
@@ -60,8 +67,8 @@ handlePieceSelection(tile) {
     
 
 executeCard() {
-    if (!this.currentCard || this.phase !== 'card-selection') {
-        console.log("No card to execute or not in card selection phase");
+    if (this.gameOver || !this.currentCard || this.phase !== 'card-selection') {
+        console.log("No card to execute, not in card selection phase, or game over");
         return;
     }
 
@@ -86,7 +93,7 @@ executeCard() {
 }
 
 declineCard() {
-    if (!this.currentCard || this.phase !== 'card-selection') return;
+    if (this.gameOver || !this.currentCard || this.phase !== 'card-selection') return;
 
     console.log('Declining card:', this.currentCard?.name || 'unknown');
 
@@ -110,23 +117,23 @@ declineCard() {
     isOverOkButton(x, y) {
         if (!this.currentCard || this.phase !== 'card-selection') return false;
     
-        const cardState = this.currentCard.getState();
-        if (!cardState.buttons || cardState.buttons.length === 0) return false;
+        // Use global button positions
+        const btn = window.cardButtonPositions?.okButton;
+        if (!btn) return false;
     
-        const okButton = cardState.buttons[0];
-        return x >= okButton.x && x <= okButton.x + okButton.width &&
-               y >= okButton.y && y <= okButton.y + okButton.height;
+        return x >= btn.x && x <= btn.x + btn.width &&
+               y >= btn.y && y <= btn.y + btn.height;
     }
     
     isOverDeclineButton(x, y) {
         if (!this.currentCard || this.phase !== 'card-selection') return false;
     
-        const cardState = this.currentCard.getState();
-        if (!cardState.buttons || cardState.buttons.length < 2) return false;
+        // Use global button positions
+        const btn = window.cardButtonPositions?.declineButton;
+        if (!btn) return false;
     
-        const declineButton = cardState.buttons[1];
-        return x >= declineButton.x && x <= declineButton.x + declineButton.width &&
-               y >= declineButton.y && y <= declineButton.y + declineButton.height;
+        return x >= btn.x && x <= btn.x + btn.width &&
+               y >= btn.y && y <= btn.y + btn.height;
     }
     updateTileStates(reset = true) {
         // Reset all tiles first

@@ -245,10 +245,52 @@ class CardEffect {
 
     static topsyTurvyCard(selections, board, currentPlayer, changes) {
         console.log("Executing Topsy Turvy Card");
-        // This card just changes pawn behavior on the client side
-        // There's no direct board state change, so we'll just acknowledge it
-        return true;
+        if (selections.length === 0) return false;
+    
+        let success = false;
+    
+        // For each selected pawn
+        for (const tileId of selections) {
+            const coords = this.idToTileCoords(tileId);
+            const tile = board.getTileAt(coords.x, coords.y);
+    
+            // Ensure it's the player's pawn
+            if (!tile || !tile.occupyingPiece ||
+                tile.occupyingPiece.name !== 'pawn' ||
+                tile.occupyingPiece.color !== currentPlayer) {
+                continue;
+            }
+    
+            // We'll "remove" the pawn and re-add it with a marker
+            // This ensures the state properly propagates to clients
+    
+            // Get current pawn data
+            const pawn = tile.occupyingPiece;
+    
+            // Remove the pawn
+            tile.clear();
+            changes.push({
+                tileId: tileId,
+                actionType: 0x01, // Remove piece
+                reason: 0x05 // Card effect
+            });
+    
+            // Add the pawn back (this will get the topsyTurvyActive flag on client)
+            pawn.spawn(tile);
+            changes.push({
+                tileId: tileId,
+                actionType: 0x02, // Add piece
+                parameter: this.getPieceParameter(pawn),
+                reason: 0x05, // Card effect
+                // The client will check state.topsyTurvyPawns to add the flag
+            });
+    
+            success = true;
+        }
+    
+        return success;
     }
+      
 
     // Helper methods
     static idToTileCoords(id) {
