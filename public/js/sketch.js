@@ -59,6 +59,10 @@ function draw() {
 
     background(220);
 
+    // для прорисовки кладбища
+    //whiteGraveyard.updateDeadPieces(board);
+    //blackGraveyard.updateDeadPieces(board);
+
     // Draw board
     drawManager.drawBoard(board.getState());
 
