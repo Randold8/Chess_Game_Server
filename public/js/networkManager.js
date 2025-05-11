@@ -5,7 +5,8 @@ class NetworkManager {
     this.color = null;
     this.roomId = null;
     this.lastSyncTurn = 0;
-    this.pendingState = null; // Добавляем хранение отложенного состояния
+    this.pendingState = null;
+    this.waitingForOpponent = true; // NEW
     // Ждем готовности реестра фигур перед установкой обработчиков сокета
     window.Piece.onReady(() => {
       this.setupSocketHandlers();
@@ -73,10 +74,12 @@ handleTopsyTurvyEffect() {
       this.color = data.color;
       this.roomId = data.roomId;
       this.gameController.setPlayerColor(this.color);
+      this.waitingForOpponent = true; // NEW
       console.log(`Connected as ${this.color} in room ${this.roomId}`);
     });
 
     this.socket.on("gameStart", (state) => {
+      this.waitingForOpponent = false; 
       console.log("Game started, receiving initial state:", state);
       if (window.PieceRegistry.ready) {
         this.applyServerState(state);

@@ -68,11 +68,48 @@ function draw() {
 
     // Log game phase for debugging
     if (gameController && gameController.gameState) {
-        // Only log when it changes to avoid console spam
-        if (window.lastPhase !== gameController.gameState.phase) {
-            console.log("Current game phase:", gameController.gameState.phase);
-            window.lastPhase = gameController.gameState.phase;
+        textSize(16);
+        const rightX = 820; // right-hand sidebar starting location
+        let y = 20;
+        textAlign(LEFT, TOP);
+    
+        // Player color
+        fill(0);
+        const playerColor = gameController.gameState.playerColor
+            ? (gameController.gameState.playerColor.charAt(0).toUpperCase() + gameController.gameState.playerColor.slice(1))
+            : 'Unknown';
+        text(`You are: ${playerColor}`, rightX, y); y += 26;
+    
+        // Turn info
+        let turnText, turnColor;
+        if (gameController.gameState.playerColor === gameController.gameState.currentPlayer) {
+            turnText = 'Turn: Your Turn';
+            turnColor = color(0, 150, 0); // green
+        } else {
+            turnText = 'Turn: Enemy Turn';
+            turnColor = color(200, 0, 0); // red
         }
+        fill(turnColor);
+        text(turnText, rightX, y); y += 26;
+    
+        // Phase and Card
+        fill(0);
+        text(`Phase: ${gameController.gameState.phase}`, rightX, y); y += 22;
+        text(`Card: ${gameController.gameState.currentCard?.name || 'none'}`, rightX, y); y += 22;
+    }
+    
+    
+    if (gameController &&
+        gameController.networkManager &&
+        gameController.networkManager.waitingForOpponent) {
+        push();
+        fill(0, 0, 0, 160);
+        rect(0, 0, width, height);
+        textAlign(CENTER, CENTER);
+        textSize(36);
+        fill(255);
+        text("Waiting for another player to join your room...", width/2, height/2);
+        pop();
     }
 
     // Draw UI elements
@@ -90,14 +127,6 @@ function draw() {
     }
     if (uiState.gameOverState) {
         drawManager.drawGameOver(uiState.gameOverState);
-    }
-    // Debug overlay for card state
-    if (gameController && gameController.gameState) {
-        fill(0);
-        textSize(14);
-        textAlign(LEFT, TOP);
-        text(`Phase: ${gameController.gameState.phase}`, 10, 10);
-        text(`Card: ${gameController.gameState.currentCard?.name || 'none'}`, 10, 30);
     }
 
     // Extra debug for card drawing
