@@ -101,15 +101,42 @@ class GameRoom {
         }
     }
     drawCard() {
-        // Select a random card type (1-6 for our defined cards)
-        const cardTypeId = Math.floor(Math.random() * 6) + 1;
-
+        // Get available cards that haven't been drawn this cycle
+        const availableCardTypes = [1, 2, 3, 4, 5, 6]; // Default card IDs
+    
+        // Filter out disabled cards (add any card IDs you want to disable)
+        const disabledCardIds = [6]; // e.g., [6] would disable Topsy Turvy (card #6)
+    
+        // Filter out already drawn cards
+        const drawnCardIds = this.drawnCardIds || [];
+    
+        // Get cards that are available and not drawn this cycle
+        let eligibleCardIds = availableCardTypes
+            .filter(id => !disabledCardIds.includes(id))
+            .filter(id => !drawnCardIds.includes(id));
+    
+        // If all cards have been drawn, reset the cycle
+        if (eligibleCardIds.length === 0) {
+            console.log("All cards have been drawn this cycle, resetting tracking");
+            this.drawnCardIds = [];
+            eligibleCardIds = availableCardTypes.filter(id => !disabledCardIds.includes(id));
+        }
+    
+        // Select a random card from eligible ones
+        const randomIndex = Math.floor(Math.random() * eligibleCardIds.length);
+        const cardTypeId = eligibleCardIds[randomIndex];
+    
+        // Record that this card has been drawn
+        if (!this.drawnCardIds) this.drawnCardIds = [];
+        this.drawnCardIds.push(cardTypeId);
+    
         // Set card phase
         this.cardPhase = 'card-selection';
         this.activeCardType = cardTypeId;
         this.cardOwner = this.currentPlayer;
-
+    
         console.log(`Player ${this.currentPlayer} drew card type ${cardTypeId}`);
+        console.log(`Drawn cards this cycle: ${this.drawnCardIds.join(', ')}`);
     }
     setupInitialPosition() {
         const pieces = [

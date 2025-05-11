@@ -10,19 +10,55 @@ class CardManager {
       DraughtCard,
       TelekinesisCard,
     ];
+    this.drawnCards = new Set();
+
+    // Cards that are disabled and won't be drawn
+    this.disabledCards = new Set();
+
+    // Disable specific cards here (add card class names to disable)
+    // Example: this.disableCard("TopsyTurvyCard");
+  }
+  disableCard(cardClassName) {
+    console.log(`Disabling card: ${cardClassName}`);
+    this.disabledCards.add(cardClassName);
   }
 
-  getAvailableCards() {
+  enableCard(cardClassName) {
+    console.log(`Enabling card: ${cardClassName}`);
+    this.disabledCards.delete(cardClassName);
+  }
+  markCardDrawn(cardClass) {
+    this.drawnCards.add(cardClass.name);
+    console.log(`Card ${cardClass.name} marked as drawn`);
+    console.log(`Drawn cards this cycle: ${Array.from(this.drawnCards).join(', ')}`);
+
+    // If all cards have been drawn, reset the tracking
+    if (this.getAvailableCards(true).length === 0) {
+      console.log("All cards have been drawn this cycle, resetting tracking");
+      this.drawnCards.clear();
+    }
+  } 
+
+  getAvailableCards(includeDrawnCards = false) {
     const availableCards = [];
 
     this.cardTypes.forEach((CardClass) => {
+      // Skip disabled cards
+      if (this.disabledCards.has(CardClass.name)) {
+        return;
+      }
+
+      // Skip already drawn cards unless specified otherwise
+      if (!includeDrawnCards && this.drawnCards.has(CardClass.name)) {
+        return;
+      }
+
       // Create temporary card to check requirements
       const tempCard = new CardClass(this.board);
       if (tempCard.checkRequirements()) {
         availableCards.push(CardClass);
       }
     });
-
     return availableCards;
   }
 }

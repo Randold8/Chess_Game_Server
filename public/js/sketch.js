@@ -15,7 +15,7 @@ function preload() {
         default: loadImage("assets/example.png"),
         polymorph: loadImage("assets/polymorph.png"),
         onslaught: loadImage("assets/onslaught.png"),
-        bizarreMutation: loadImage("assets/bizarremutation.png"),
+        bizarremutation: loadImage("assets/bizarremutation.png"),
         draught: loadImage("assets/draught.png"),
         telekinesis: loadImage("assets/telekinesis.png"),
         topsyTurvy: loadImage("assets/topsyturvy.png")
