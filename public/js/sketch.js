@@ -44,8 +44,10 @@ function setup() {
         // Создаем drawManager до его использования
         drawManager = new DrawManager();
 
-        whiteGraveyard = new Graveyard('white', 810, 400, 180, 390);
-        blackGraveyard = new Graveyard('black', 810, 10, 180, 390);
+        whiteGraveyard = new Graveyard('white', 820, 260, 150, 200);
+        blackGraveyard = new Graveyard('black', 820, 140, 150, 200);
+        gameController.whiteGraveyard = whiteGraveyard;
+        gameController.blackGraveyard = blackGraveyard;
 
         gameController = new GameController(board);
         board.gameState = gameController.gameState;

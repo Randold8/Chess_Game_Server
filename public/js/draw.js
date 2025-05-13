@@ -152,7 +152,7 @@ class DrawManager {
 
         let xOffset = 10;
         let yOffset = 20;
-        textSize(this.tileSize * 0.4);
+        textSize(this.tileSize * 0.18);
 
         Object.entries(graveyardState.deadPieces).forEach(([pieceName, count]) => {
             if (count > 0) {
@@ -166,7 +166,7 @@ class DrawManager {
                      graveyardState.x + xOffset + this.tileSize * 0.5,
                      graveyardState.y + yOffset);
 
-                yOffset += this.tileSize * 0.5;
+                yOffset += this.tileSize * 0.22;
             }
         });
     }

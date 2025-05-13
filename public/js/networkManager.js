@@ -282,11 +282,11 @@ applyServerState(state) {
   }
 
   // Update graveyards
-  if (this.gameController.whiteGraveyard) {
-      this.gameController.whiteGraveyard.updateDeadPieces(this.gameController.board);
+  if (this.gameController.whiteGraveyard && state.whiteGraveyard) {
+      this.gameController.whiteGraveyard.setState(state.whiteGraveyard);
   }
-  if (this.gameController.blackGraveyard) {
-      this.gameController.blackGraveyard.updateDeadPieces(this.gameController.board);
+  if (this.gameController.blackGraveyard && state.blackGraveyard) {
+      this.gameController.blackGraveyard.setState(state.blackGraveyard);
   }
 
   console.log("State applied, current player:", this.gameController.gameState.currentPlayer);

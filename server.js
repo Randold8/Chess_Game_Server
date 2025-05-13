@@ -191,6 +191,44 @@ class GameRoom {
             }
         });
     
+        // Создаем состояние кладбищ (только deadPieces)
+        const whiteGraveyard = {
+            deadPieces: {
+                pawn: 0,
+                rook: 0,
+                knight: 0,
+                bishop: 0,
+                queen: 0,
+                king: 0,
+                jumper: 0,
+                ogre: 0
+            }
+        };
+
+        const blackGraveyard = {
+            deadPieces: {
+                pawn: 0,
+                rook: 0,
+                knight: 0,
+                bishop: 0,
+                queen: 0,
+                king: 0,
+                jumper: 0,
+                ogre: 0
+            }
+        };
+
+        // Подсчитываем мертвые фигуры
+        this.board.pieces.forEach(piece => {
+            if (piece.state === 'dead') {
+                if (piece.color === 'white') {
+                    whiteGraveyard.deadPieces[piece.name]++;
+                } else {
+                    blackGraveyard.deadPieces[piece.name]++;
+                }
+            }
+        });
+    
         return {
             status: 0x01,
             changes: changes,
@@ -201,7 +239,9 @@ class GameRoom {
             cardOwner: this.cardOwner,
             topsyTurvyPawns: this.topsyTurvyPawns || [],
             gameOver: this.gameOver,
-            winner: this.winner
+            winner: this.winner,
+            whiteGraveyard: whiteGraveyard,
+            blackGraveyard: blackGraveyard
         };
     }
     
@@ -494,6 +534,10 @@ executeMove(data) {
         gameOver: this.gameOver,
         winner: this.winner
     };
+    // Добавляем кладбища в ответ
+    const fullState = this.getFullState();
+    response.whiteGraveyard = fullState.whiteGraveyard;
+    response.blackGraveyard = fullState.blackGraveyard;
 
     console.log(`Response prepared, currentPlayer: ${response.currentPlayer}, changes: ${response.changes.length}, gameOver: ${response.gameOver}`);
     return response;

@@ -39,4 +39,8 @@ class Graveyard {
             deadPieces: this.deadPieces
         };
     }
+
+    setState(state) {
+        this.deadPieces = { ...state.deadPieces };
+    }
 }
