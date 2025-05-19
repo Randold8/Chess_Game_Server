@@ -146,27 +146,36 @@ class DrawManager {
     }
 
     drawGraveyard(graveyardState) {
-        fill(200);
+        fill(210);
         rect(graveyardState.x, graveyardState.y,
-             graveyardState.width, graveyardState.height);
+             graveyardState.width, graveyardState.height, 10);
 
-        let xOffset = 10;
-        let yOffset = 20;
-        textSize(this.tileSize * 0.4);
+        const iconSize = 28;
+        const textSizeVal = 18;
+        const colCount = 2;
+        const xStep = 60;
+        const yStep = 40;
+        const yOffsetStart = 36;
+        const totalWidth = (colCount - 1) * xStep + iconSize + 30;
+        const xOffsetStart = graveyardState.x + (graveyardState.width - totalWidth) / 2;
 
+        let i = 0;
         Object.entries(graveyardState.deadPieces).forEach(([pieceName, count]) => {
             if (count > 0) {
+                const col = i % colCount;
+                const row = Math.floor(i / colCount);
+                const x = xOffsetStart + col * xStep;
+                const y = graveyardState.y + yOffsetStart + row * yStep;
+
                 fill(0);
                 textAlign(LEFT, CENTER);
-                text(this.pieceEmojis[graveyardState.color][pieceName],
-                     graveyardState.x + xOffset,
-                     graveyardState.y + yOffset);
+                textSize(iconSize);
+                text(this.pieceEmojis[graveyardState.color][pieceName], x, y);
 
-                text(`x${count}`,
-                     graveyardState.x + xOffset + this.tileSize * 0.5,
-                     graveyardState.y + yOffset);
+                textSize(textSizeVal);
+                text(`x${count}`, x + iconSize + 2, y);
 
-                yOffset += this.tileSize * 0.5;
+                i++;
             }
         });
     }

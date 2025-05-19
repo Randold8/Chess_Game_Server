@@ -492,7 +492,9 @@ executeMove(data) {
         cardOwner: this.cardOwner,
         topsyTurvyPawns: this.topsyTurvyPawns || [],
         gameOver: this.gameOver,
-        winner: this.winner
+        winner: this.winner,
+        whiteGraveyard: this.getGraveyardState('white'),
+        blackGraveyard: this.getGraveyardState('black')
     };
 
     console.log(`Response prepared, currentPlayer: ${response.currentPlayer}, changes: ${response.changes.length}, gameOver: ${response.gameOver}`);
@@ -721,6 +723,34 @@ executeMove(data) {
         };
     }
 
+    getGraveyardState(color) {
+        const deadPieces = {
+            pawn: 0,
+            rook: 0,
+            knight: 0,
+            bishop: 0,
+            queen: 0,
+            king: 0,
+            jumper: 0,
+            ogre: 0
+        };
+
+        // Count dead pieces of the specified color
+        this.board.pieces.forEach(piece => {
+            if (piece.color === color && piece.state === 'dead') {
+                deadPieces[piece.name]++;
+            }
+        });
+
+        return {
+            color: color,
+            x: color === 'white' ? 810 : 810,
+            y: color === 'white' ? 400 : 10,
+            width: 180,
+            height: 390,
+            deadPieces: deadPieces
+        };
+    }
 }
 
 let waitingRoom = null;
